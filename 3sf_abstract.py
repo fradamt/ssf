@@ -84,7 +84,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         nodeState.s_cand,
         nodeState
     ).add(
-        nodeState.blocks[get_highest_justified_checkpoint(nodeState).block_hash]
+        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState)
     )
 
     bcand = pick_from_set(s_cand)

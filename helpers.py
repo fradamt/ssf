@@ -35,15 +35,15 @@ def has_block_hash(block_hash: Hash, nodeState: NodeState) -> bool:
     
 def get_block_from_hash(block_hash: Hash, nodeState: NodeState) -> Block:
     Requires(has_block_hash(block_hash, nodeState))
-    return nodeState.blocks[block_hash]
+    return get_block_from_hash(block_hash, nodeState)
 
 def has_parent(block: Block, nodeState: NodeState) -> bool:
-    return block.parent_hash in nodeState.blocks
+    return has_block_hash(block.parent_hash, nodeState)
 
 
 def get_parent(block: Block, nodeState: NodeState) -> Block:
     Requires(has_parent(block, nodeState))
-    return nodeState.blocks[block.parent_hash]
+    return get_block_from_hash(block.parent_hash, nodeState)
 
 def is_complete_chain(block: Block, nodeState: NodeState) -> bool:
     if block == nodeState.configuration.genesis:
@@ -111,35 +111,35 @@ def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
     return FFG_source_checkpoints
 
 def get_descendant_FFG_targets_for_same_slot(checkpoint: Checkpoint, votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[Checkpoint]:
-    Requires(checkpoint.block_hash in nodeState.blocks)
+    Requires(has_block_hash(checkpoint.block_hash, nodeState))
 
     descendant_checkpoints: PSet[Checkpoint] = pset()
     descendant_checkpoints = descendant_checkpoints.add(checkpoint)
 
-    checkpoint_block = nodeState.blocks[checkpoint.block_hash]
+    checkpoint_block = get_block_from_hash(checkpoint.block_hash, nodeState)
 
     for vote in votes:
         if (
             vote.message.slot == checkpoint.chkp_slot and
-            vote.message.ffg_target.block_hash in nodeState.blocks and
-            is_ancestor_descendant_relationship(checkpoint_block, nodeState.blocks[vote.message.ffg_target.block_hash], nodeState)
+            has_block_hash(vote.message.ffg_target.block_hash, nodeState) and
+            is_ancestor_descendant_relationship(checkpoint_block, get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), nodeState)
         ):
             descendant_checkpoints = descendant_checkpoints.add(vote.message.ffg_target)
 
     return descendant_checkpoints
 
 def get_ancestor_FFG_sources(checkpoint: Checkpoint, votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[Checkpoint]:
-    Requires(checkpoint.block_hash in nodeState.blocks)
+    Requires(has_block_hash(checkpoint.block_hash, nodeState))
 
     ancestor_checkpoint: PSet[Checkpoint] = pset()
     ancestor_checkpoint = ancestor_checkpoint.add(checkpoint)
 
-    checkpoint_block = nodeState.blocks[checkpoint.block_hash]
+    checkpoint_block = get_block_from_hash(checkpoint.block_hash, nodeState)
 
     for vote in votes:
         if (
-            vote.message.ffg_source.block_hash in nodeState.blocks and
-            is_ancestor_descendant_relationship(nodeState.blocks[vote.message.ffg_source.block_hash], checkpoint_block, nodeState)
+            has_block_hash(vote.message.ffg_source.block_hash, nodeState) and
+            is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), checkpoint_block, nodeState)
         ):
             ancestor_checkpoint = ancestor_checkpoint.add(vote.message.ffg_source)
 
@@ -149,8 +149,8 @@ def is_FFG_vote_in_support_of_checkpoint(vote: SignedVoteMessage, checkpoint: Ch
     return (
         valid_vote(vote, nodeState) and
         vote.message.ffg_target.chkp_slot == checkpoint.chkp_slot and
-        is_ancestor_descendant_relationship(nodeState.blocks[checkpoint.block_hash], nodeState.blocks[vote.message.ffg_target.block_hash], nodeState) and
-        is_ancestor_descendant_relationship(nodeState.blocks[vote.message.ffg_source.block_hash], nodeState.blocks[checkpoint.block_hash], nodeState) and
+        is_ancestor_descendant_relationship(get_block_from_hash(checkpoint.block_hash, nodeState), get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), nodeState) and
+        is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), get_block_from_hash(checkpoint.block_hash, nodeState), nodeState) and
         is_justified(vote.message.ffg_source, nodeState)
     )
 
@@ -179,10 +179,10 @@ def is_justified(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
     if checkpoint == genesis_checkpoint(nodeState):
         return True
     else:
-        if checkpoint.block_hash not in nodeState.blocks or not is_complete_chain(nodeState.blocks[checkpoint.block_hash], nodeState):
+        if not has_block_hash(checkpoint.block_hash, nodeState) or not is_complete_chain(get_block_from_hash(checkpoint.block_hash, nodeState), nodeState):
             return False
 
-        validatorBalances = get_validator_set_for_slot(nodeState.blocks[checkpoint.block_hash], checkpoint.block_slot, nodeState)
+        validatorBalances = get_validator_set_for_slot(get_block_from_hash(checkpoint.block_hash, nodeState), checkpoint.block_slot, nodeState)
 
         FFG_support_weight = validator_set_weight(get_validators_in_FFG_support_of_checkpoint(nodeState.view_vote, checkpoint, nodeState), validatorBalances)
         tot_validator_set_weight = validator_set_weight(get_key_set(validatorBalances), validatorBalances)
@@ -237,8 +237,8 @@ def filter_out_votes_non_descendant_of_block(block: Block, votes: PSet[SignedVot
 
 def is_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHead: Block, nodeState: NodeState) -> bool:
     return (
-        vote.message.head_hash in nodeState.blocks and
-        is_ancestor_descendant_relationship(nodeState.blocks[vote.message.head_hash], blockchainHead, nodeState)
+        has_block_hash(vote.message.head_hash, nodeState) and
+        is_ancestor_descendant_relationship(get_block_from_hash(vote.message.head_hash, nodeState), blockchainHead, nodeState)
     )
 
 def filter_out_votes_not_for_blocks_in_blockchain(votes: PSet[SignedVoteMessage], blockchainHead: Block, nodeState: NodeState) -> PSet[SignedVoteMessage]:
@@ -293,16 +293,16 @@ def filter_out_equivocating_votes(nodeState: NodeState) -> PSet[SignedVoteMessag
 def valid_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
     return (
         verify_vote_signature(vote) and
-        vote.message.head_hash in nodeState.blocks and
-        is_complete_chain(nodeState.blocks[vote.message.head_hash], nodeState) and
-        vote.sender in get_validator_set_for_slot(nodeState.blocks[vote.message.head_hash], vote.message.slot, nodeState) and
-        is_ancestor_descendant_relationship(nodeState.blocks[vote.message.ffg_source.block_hash], nodeState.blocks[vote.message.ffg_target.block_hash], nodeState) and
-        is_ancestor_descendant_relationship(nodeState.blocks[vote.message.ffg_target.block_hash], nodeState.blocks[vote.message.head_hash], nodeState) and
+        has_block_hash(vote.message.head_hash, nodeState) and
+        is_complete_chain(get_block_from_hash(vote.message.head_hash, nodeState), nodeState) and
+        vote.sender in get_validator_set_for_slot(get_block_from_hash(vote.message.head_hash, nodeState), vote.message.slot, nodeState) and
+        is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), nodeState) and
+        is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), get_block_from_hash(vote.message.head_hash, nodeState), nodeState) and
         vote.message.ffg_source.chkp_slot < vote.message.ffg_target.chkp_slot and
-        vote.message.ffg_source.block_hash in nodeState.blocks and
-        nodeState.blocks[vote.message.ffg_source.block_hash].slot == vote.message.ffg_source.block_slot and
-        vote.message.ffg_target.block_hash in nodeState.blocks and
-        nodeState.blocks[vote.message.ffg_target.block_hash].slot == vote.message.ffg_target.block_slot
+        has_block_hash(vote.message.ffg_source.block_hash, nodeState) and
+        get_block_from_hash(vote.message.ffg_source.block_hash, nodeState).slot == vote.message.ffg_source.block_slot and
+        has_block_hash(vote.message.ffg_target.block_hash, nodeState) and
+        get_block_from_hash(vote.message.ffg_target.block_hash, nodeState).slot == vote.message.ffg_target.block_slot
     )
 
 def filter_out_invalid_votes(votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[SignedVoteMessage]:
@@ -315,10 +315,10 @@ def filter_out_invalid_votes(votes: PSet[SignedVoteMessage], nodeState: NodeStat
     return filtered_votes
 
 def get_votes_included_in_blockchain(block: Block, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    if block == nodeState.configuration.genesis or block.parent_hash not in nodeState.blocks:
+    if block == nodeState.configuration.genesis or not has_block_hash(block.parent_hash, nodeState):
         return block.votes
     else:
-        return merge_sets(block.votes, get_votes_included_in_blockchain(nodeState.blocks[block.parent_hash], nodeState))
+        return merge_sets(block.votes, get_votes_included_in_blockchain(get_block_from_hash(block.parent_hash, nodeState), nodeState))
 
 
 def get_votes_included_in_blocks(blocks: PSet[Block]) -> PSet[SignedVoteMessage]:
@@ -375,8 +375,8 @@ def ghost_weight(block: Block, votes: PSet[SignedVoteMessage], nodeState: NodeSt
 
     for vote in votes:
         if (
-            vote.message.head_hash in nodeState.blocks and # Perhaps not needed
-            is_ancestor_descendant_relationship(block, nodeState.blocks[vote.message.head_hash], nodeState) and
+            has_block_hash(vote.message.head_hash, nodeState) and # Perhaps not needed
+            is_ancestor_descendant_relationship(block, get_block_from_hash(vote.message.head_hash, nodeState), nodeState) and
             vote.sender in validatorBalances
         ):
             weight = weight + validatorBalances[vote.sender]
@@ -387,9 +387,9 @@ def ghost_weight(block: Block, votes: PSet[SignedVoteMessage], nodeState: NodeSt
 def get_children(block: Block, nodeState: NodeState) -> PSet[Block]:
     children: PSet[Block] = create_set([])
 
-    for b in nodeState.blocks:
-        if nodeState.blocks[b].parent_hash == block_hash(block):
-            children = children.add(nodeState.blocks[b])
+    for b in nodeState.blocks.values():
+        if b.parent_hash == block_hash(block):
+            children = children.add(b)
 
     return children
 

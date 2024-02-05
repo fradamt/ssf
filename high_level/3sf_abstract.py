@@ -40,8 +40,8 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
     else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=set_get_empty(),
-            voteMessages=set_get_empty()
+            proposeMessagesToTx=set_get_empty(),
+            voteMessagesToTx=set_get_empty()
         )
 
 def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
@@ -61,15 +61,15 @@ def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=set_get_singleton(signed_propose),
-            voteMessages=set_get_empty()
+            proposeMessagesToTx=set_get_singleton(signed_propose),
+            voteMessagesToTx=set_get_empty()
         )
 
     else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=set_get_empty(),
-            voteMessages=set_get_empty()
+            proposeMessagesToTx=set_get_empty(),
+            voteMessagesToTx=set_get_empty()
         )
 
 def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
@@ -121,8 +121,8 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_singleton(signedVoteMessage)
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_singleton(signedVoteMessage)
     )
 
 def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
@@ -136,15 +136,15 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
                 )
             )
         ),
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_empty()
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_empty()
     )
 
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_empty()
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_empty()
     )
 
 @Event
@@ -157,16 +157,16 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
 
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_empty()
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_empty()
     )
 
 @Event
 def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(block), block)),
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_empty()
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_empty()
     )
 
 @Event
@@ -179,6 +179,6 @@ def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeSt
                     vote
                 )
         ),
-        proposeMessages=set_get_empty(),
-        voteMessages=set_get_empty()
+        proposeMessagesToTx=set_get_empty(),
+        voteMessagesToTx=set_get_empty()
     )

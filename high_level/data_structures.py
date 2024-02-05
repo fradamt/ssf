@@ -87,11 +87,11 @@ class NodeState(PRecord):
 @dataclass(frozen=True)
 class NewNodeStateAndMessagesToTx:
     state: NodeState
-    proposeMessages: PSet[SignedProposeMessage]
-    voteMessages: PSet[SignedVoteMessage]
+    proposeMessagesToTx: PSet[SignedProposeMessage]
+    voteMessagesToTx: PSet[SignedVoteMessage]
 
 
-    # Keeping the two fields before separate for now as this may help the Dafny translation
-    # We may in the future just want to use one using a common base class for propose and vote messages
-    proposeMessagesToTx: PSet[SignedProposeMessage] = field()
-    voteMessagesToTx: PSet[SignedVoteMessage] = field()
+    # # Keeping the two fields before separate for now as this may help the Dafny translation
+    # # We may in the future just want to use one using a common base class for propose and vote messages
+    # proposeMessagesToTx: PSet[SignedProposeMessage] = field()
+    # voteMessagesToTx: PSet[SignedVoteMessage] = field()

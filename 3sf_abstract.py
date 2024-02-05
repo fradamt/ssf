@@ -41,8 +41,8 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
     else:    
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=empty_set(),
-            voteMessages=empty_set()
+            proposeMessages=set_get_empty(),
+            voteMessages=set_get_empty()
         )
 
 def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
@@ -62,20 +62,20 @@ def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=create_set([signed_propose]),
-            voteMessages=create_set([])
+            proposeMessages=set_get_singleton(signed_propose),
+            voteMessages=set_get_empty()
         )
 
     else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=create_set([]),
-            voteMessages=create_set([])
+            proposeMessages=set_get_empty(),
+            voteMessages=set_get_empty()
         )
 
 def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     ch = get_head(nodeState)
-    s_cand = add_to_set(
+    s_cand = set_add(
         filter_out_blocks_non_ancestor_of_block(
             ch,
             nodeState.s_cand,
@@ -84,7 +84,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState)
     )
 
-    bcand = pick_from_set(s_cand)
+    bcand = set_pick_element(s_cand)
     for block in s_cand:
         if block.slot > bcand.slot:
             bcand = block
@@ -122,14 +122,14 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=empty_set(),
-        voteMessages=create_set([signedVoteMessage])
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_singleton(signedVoteMessage)
     )
 
 def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            s_cand = merge_sets(
+            s_cand = set_merge(
                 nodeState.s_cand,
                 filter_out_not_confirmed(
                     get_all_blocks(nodeState),
@@ -137,15 +137,15 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
                 )
             )
         ),
-        proposeMessages=empty_set(),
-        voteMessages=empty_set()
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_empty()
     )
     
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
-        proposeMessages=empty_set(),
-        voteMessages=empty_set()
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_empty()
     )
 
 @Event
@@ -158,16 +158,16 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
     
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=empty_set(),
-        voteMessages=empty_set()
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_empty()
     )
 
 @Event
 def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(block), block)),
-        proposeMessages=empty_set(),
-        voteMessages=empty_set()
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_empty()
     )    
 
 @Event  
@@ -175,11 +175,11 @@ def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeSt
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
             buffer_vote=
-                add_to_set(
+                set_add(
                     nodeState.buffer_vote,
                     vote
                 )
         ),
-        proposeMessages=empty_set(),
-        voteMessages=empty_set()
+        proposeMessages=set_get_empty(),
+        voteMessages=set_get_empty()
     )

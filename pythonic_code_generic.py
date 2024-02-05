@@ -12,11 +12,15 @@ def pvector_concat(a: PVector[T1], b: PVector[T1]) -> PVector[T1]:
 def from_set_to_pvector(s: PSet[T1]) -> PVector[T1]:
     return pvector(s)
 
-def set_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
-    return a.union(b)
 
 def set_get_empty() -> PSet[T1]:
     return pset()
+
+
+def set_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
+    return a.union(b)
+
+
 
 def set_get_singleton(e: T1) -> PSet[T1]:
     return pset([e])

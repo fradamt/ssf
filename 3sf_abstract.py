@@ -4,8 +4,7 @@ from pythonic_code_generic import *
 from stubs import *
 from helpers import *
 
-
-
+# TBD
 # def init() -> NodeState:
 #     return NodeState(
 #         identity=NodeIdentity(),
@@ -38,7 +37,7 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
             return on_confirm(nodeState)
         else:
             return on_merge(nodeState)
-    else:    
+    else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
             proposeMessages=set_get_empty(),
@@ -105,7 +104,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         nodeState = nodeState.set(
             chAva=newChAva
         )
-        
+
     signedVoteMessage = sign_vote_message(
         VoteMessage(
             slot=nodeState.current_slot,
@@ -119,7 +118,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         ),
         nodeState
     )
-        
+
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
         proposeMessages=set_get_empty(),
@@ -140,7 +139,7 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         proposeMessages=set_get_empty(),
         voteMessages=set_get_empty()
     )
-    
+
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
@@ -155,7 +154,7 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
         nodeState = nodeState.set(
             view_vote=nodeState.view_vote.union(propose.message.proposer_view),
         )
-    
+
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
         proposeMessages=set_get_empty(),
@@ -168,9 +167,9 @@ def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMess
         state=nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(block), block)),
         proposeMessages=set_get_empty(),
         voteMessages=set_get_empty()
-    )    
+    )
 
-@Event  
+@Event
 def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(

@@ -1,0 +1,8 @@
+[MAIN]
+disable=
+    missing-function-docstring, 
+    line-too-long, 
+    missing-module-docstring, 
+    wildcard-import,
+    invalid-name,
+    no-else-return

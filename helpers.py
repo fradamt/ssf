@@ -27,10 +27,10 @@ def genesis_checkpoint(nodeState: NodeState) -> Checkpoint:
         chkp_slot=0,
         block_slot=0
     )
-    
+
 def has_block_hash(block_hash: Hash, nodeState: NodeState) -> bool:
     return block_hash in nodeState.blocks
-    
+
 def get_block_from_hash(block_hash: Hash, nodeState: NodeState) -> Block:
     Requires(has_block_hash(block_hash, nodeState))
     return get_block_from_hash(block_hash, nodeState)
@@ -65,8 +65,8 @@ def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, node
         return (
             has_parent(descendant, nodeState) and
             is_ancestor_descendant_relationship(
-                ancestor, 
-                get_parent(descendant, nodeState), 
+                ancestor,
+                get_parent(descendant, nodeState),
                 nodeState
             )
         )
@@ -213,8 +213,8 @@ def filter_out_votes_non_descendant_of_block(block: Block, votes: PSet[SignedVot
         lambda vote :
             has_block_hash(vote.message.head_hash, nodeState) and
             is_ancestor_descendant_relationship(
-                block, 
-                get_block_from_hash(vote.message.head_hash, nodeState), 
+                block,
+                get_block_from_hash(vote.message.head_hash, nodeState),
                 nodeState
             ),
         votes
@@ -406,13 +406,13 @@ def get_head(nodeState: NodeState) -> Block:
     )
 
     validatorBalances = get_validator_set_for_slot(
-        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState), 
-        nodeState.current_slot, 
+        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState),
+        nodeState.current_slot,
         nodeState
     )
 
     return find_head_from(
-        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState), 
+        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState),
         relevant_votes,
         nodeState,
         validatorBalances
@@ -436,23 +436,23 @@ def get_block_k_deep(blockHead: Block, k: int, nodeState: NodeState) -> Block:
         return get_block_k_deep(get_parent(blockHead, nodeState), k-1, nodeState)
 
 
-    
+
 def is_confirmed(block: Block, nodeState: NodeState) -> bool:
     head_block = get_head(nodeState)
-    
+
     validatorBalances = get_validator_set_for_slot(
-        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState), 
-        nodeState.current_slot, 
+        get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState),
+        nodeState.current_slot,
         nodeState
     )
 
     tot_validator_set_weight = validator_set_weight(pmap_keys(validatorBalances), validatorBalances)
-    
+
     return (
         is_ancestor_descendant_relationship(block, head_block, nodeState) and
         ghost_weight(block, nodeState.view_vote, nodeState, validatorBalances) * 3 >= tot_validator_set_weight * 2
     )
-    
+
 def filter_out_not_confirmed(blocks: PSet[Block], nodeState: NodeState) -> PSet[Block]:
     return pset_filter(
         lambda block: is_confirmed(block, nodeState),

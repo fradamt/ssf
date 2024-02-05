@@ -1,10 +1,6 @@
-from dataclasses import dataclass
-from typing import TypeVar, Optional
-from pyrsistent import PClass, m, pmap, v, PRecord, field, pset, PSet, PMap
-
 from data_structures import *
 from formal_verification_annotations import *
-from pythonic_code import *
+from pythonic_code_generic import *
 from stubs import *
 from helpers import *
 
@@ -45,8 +41,8 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
     else:    
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessages=pset(),
-            voteMessages=pset()
+            proposeMessages=empty_set(),
+            voteMessages=empty_set()
         )
 
 def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
@@ -79,11 +75,12 @@ def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
 def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     ch = get_head(nodeState)
-    s_cand = filter_out_blocks_non_ancestor_of_block(
-        ch,
-        nodeState.s_cand,
-        nodeState
-    ).add(
+    s_cand = add_to_set(
+        filter_out_blocks_non_ancestor_of_block(
+            ch,
+            nodeState.s_cand,
+            nodeState
+        ),
         get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState)
     )
 
@@ -125,7 +122,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=pset(),
+        proposeMessages=empty_set(),
         voteMessages=create_set([signedVoteMessage])
     )
 
@@ -140,15 +137,15 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
                 )
             )
         ),
-        proposeMessages=pset(),
-        voteMessages=pset()
+        proposeMessages=empty_set(),
+        voteMessages=empty_set()
     )
     
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
-        proposeMessages=pset(),
-        voteMessages=pset()
+        proposeMessages=empty_set(),
+        voteMessages=empty_set()
     )
 
 @Event
@@ -161,24 +158,28 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
     
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessages=pset(),
-        voteMessages=pset()
+        proposeMessages=empty_set(),
+        voteMessages=empty_set()
     )
 
 @Event
 def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(block), block)),
-        proposeMessages=pset(),
-        voteMessages=pset()
+        proposeMessages=empty_set(),
+        voteMessages=empty_set()
     )    
 
 @Event  
 def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            buffer_vote=nodeState.buffer_vote.add(vote)
+            buffer_vote=
+                add_to_set(
+                    nodeState.buffer_vote,
+                    vote
+                )
         ),
-        proposeMessages=pset(),
-        voteMessages=pset()
+        proposeMessages=empty_set(),
+        voteMessages=empty_set()
     )

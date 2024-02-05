@@ -64,7 +64,7 @@ class NodePhase(Enum):
     MERGE = 3
 
 @dataclass(frozen=True)
-class Configuration:
+class Configuration():
     delta: int
     genesis: Block
     eta: int

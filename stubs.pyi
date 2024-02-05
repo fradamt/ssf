@@ -1,5 +1,4 @@
 from data_structures import *
-from pyrsistent import PClass, m, pmap, v, PRecord, field, pset, PSet, PMap
 from formal_verification_annotations import *
 from helpers import is_complete_chain
 

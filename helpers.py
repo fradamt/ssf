@@ -1,12 +1,9 @@
-from dataclasses import dataclass
-from typing import TypeVar, Optional
-from pyrsistent import PClass, m, pmap, v, PRecord, field, pset, PSet, PMap, pvector, PVector
+from pyrsistent import PSet, PMap, PVector
 
 from data_structures import *
 from formal_verification_annotations import *
-from pythonic_code import *
+from pythonic_code_generic import *
 from stubs import *
-# from generic_helpers import filter_pset, map_pset
 
 def get_slot_from_time(time:int, nodeState: NodeState) -> int:
     return time // (4 * nodeState.configuration.delta)
@@ -75,20 +72,20 @@ def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, node
         )
 
 def get_votes_for_FFG_link(source: Checkpoint, target: Checkpoint, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    filtered_votes: PSet[SignedVoteMessage] = pset()
+    filtered_votes: PSet[SignedVoteMessage] = empty_set()
 
     for vote in nodeState.view_vote:
         if vote.message.ffg_source == source and vote.message.ffg_target == target:
-            filtered_votes.add(vote)
+            add_to_set(filtered_votes, vote)
 
     return filtered_votes
 
 
 def get_senders_of_votes(votes: PSet[SignedVoteMessage]) -> PSet[NodeIdentity]:
-    senders: PSet[NodeIdentity] = pset()
+    senders: PSet[NodeIdentity] = empty_set()
 
     for vote in votes:
-        senders = senders.add(vote.sender)
+        senders = add_to_set(senders, vote.sender)
 
     return senders
 
@@ -108,18 +105,18 @@ def is_FFG_link_supermajority(source: Checkpoint, target: Checkpoint, nodeState:
     return link_weight * 3 >= tot_validator_set_weight * 2
 
 def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
-    FFG_source_checkpoints: PSet[Checkpoint] = pset()
+    FFG_source_checkpoints: PSet[Checkpoint] = empty_set()
 
     for vote in votes:
-        FFG_source_checkpoints = FFG_source_checkpoints.add(vote.message.ffg_target)
+        FFG_source_checkpoints = add_to_set(FFG_source_checkpoints, vote.message.ffg_target)
 
     return FFG_source_checkpoints
 
 def get_descendant_FFG_targets_for_same_slot(checkpoint: Checkpoint, votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[Checkpoint]:
     Requires(has_block_hash(checkpoint.block_hash, nodeState))
 
-    descendant_checkpoints: PSet[Checkpoint] = pset()
-    descendant_checkpoints = descendant_checkpoints.add(checkpoint)
+    descendant_checkpoints: PSet[Checkpoint] = empty_set()
+    descendant_checkpoints = add_to_set(descendant_checkpoints, checkpoint)
 
     checkpoint_block = get_block_from_hash(checkpoint.block_hash, nodeState)
 
@@ -129,15 +126,15 @@ def get_descendant_FFG_targets_for_same_slot(checkpoint: Checkpoint, votes: PSet
             has_block_hash(vote.message.ffg_target.block_hash, nodeState) and
             is_ancestor_descendant_relationship(checkpoint_block, get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), nodeState)
         ):
-            descendant_checkpoints = descendant_checkpoints.add(vote.message.ffg_target)
+            descendant_checkpoints = add_to_set(descendant_checkpoints, vote.message.ffg_target)
 
     return descendant_checkpoints
 
 def get_ancestor_FFG_sources(checkpoint: Checkpoint, votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[Checkpoint]:
     Requires(has_block_hash(checkpoint.block_hash, nodeState))
 
-    ancestor_checkpoint: PSet[Checkpoint] = pset()
-    ancestor_checkpoint = ancestor_checkpoint.add(checkpoint)
+    ancestor_checkpoint: PSet[Checkpoint] = empty_set()
+    ancestor_checkpoint = add_to_set(ancestor_checkpoint, checkpoint)
 
     checkpoint_block = get_block_from_hash(checkpoint.block_hash, nodeState)
 
@@ -146,7 +143,7 @@ def get_ancestor_FFG_sources(checkpoint: Checkpoint, votes: PSet[SignedVoteMessa
             has_block_hash(vote.message.ffg_source.block_hash, nodeState) and
             is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), checkpoint_block, nodeState)
         ):
-            ancestor_checkpoint = ancestor_checkpoint.add(vote.message.ffg_source)
+            ancestor_checkpoint = add_to_set(ancestor_checkpoint, vote.message.ffg_source)
 
     return ancestor_checkpoint
 
@@ -190,7 +187,8 @@ def filter_out_non_justified_checkpoint(checkpoints: PSet[Checkpoint], nodeState
 
 
 def get_justified_checkpoints(nodeState: NodeState) -> PSet[Checkpoint]:
-    return filter_out_non_justified_checkpoint(get_set_FFG_targets(nodeState.view_vote), nodeState).add(
+    return add_to_set(
+        filter_out_non_justified_checkpoint(get_set_FFG_targets(nodeState.view_vote), nodeState),
         genesis_checkpoint(nodeState)
     )
 
@@ -253,11 +251,11 @@ def filter_out_expired_votes(votes: PSet[SignedVoteMessage], nodeState: NodeStat
     )
 
 def filter_out_non_LMD_votes(votes: PSet[SignedVoteMessage]) -> PSet[SignedVoteMessage]:
-    lmd: PMap[NodeIdentity, SignedVoteMessage] = pmap()
+    lmd: PMap[NodeIdentity, SignedVoteMessage] = empty_pmap()
 
     for vote in votes:
         if vote.sender not in lmd or vote.message.slot > lmd[vote.sender].message.slot:
-            lmd = lmd.set(vote.sender, vote)
+            lmd = pmap_set(lmd, vote.sender, vote)
 
     return get_value_set(lmd)
 
@@ -307,7 +305,7 @@ def get_votes_included_in_blockchain(block: Block, nodeState: NodeState) -> PSet
 
 
 def get_votes_included_in_blocks(blocks: PSet[Block]) -> PSet[SignedVoteMessage]:
-    votes: PSet[SignedVoteMessage] = pset()
+    votes: PSet[SignedVoteMessage] = empty_set()
 
     for block in blocks:
         votes = merge_sets(votes, block.votes)
@@ -339,7 +337,7 @@ def get_new_block(nodeState: NodeState) -> Block:
 
 def get_votes_to_include_in_propose_message_view(nodeState: NodeState) -> PVector[SignedVoteMessage]:
     head_block = get_head(nodeState)
-    return pvector(
+    return from_set_to_pvector(
             filter_out_votes_for_blocks_in_blockchain(
                 filter_out_votes_non_descendant_of_block(
                         get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState),
@@ -373,7 +371,7 @@ def get_children(block: Block, nodeState: NodeState) -> PSet[Block]:
 
     for b in nodeState.blocks.values():
         if b.parent_hash == block_hash(block):
-            children = children.add(b)
+            children = add_to_set(children, b)
 
     return children
 
@@ -423,9 +421,9 @@ def get_head(nodeState: NodeState) -> Block:
 
 def execute_view_merge(nodeState: NodeState) -> NodeState:
     nodeState = nodeState.set(blocks=merge_maps(nodeState.blocks, nodeState.buffer_blocks))
-    nodeState = nodeState.set(view_vote=merge_sets(merge_sets(nodeState.view_vote, nodeState.buffer_vote), get_votes_included_in_blocks(pset(nodeState.buffer_blocks.values()))))
-    nodeState = nodeState.set(buffer_vote=pset())
-    nodeState = nodeState.set(buffer_blocks=pset())
+    nodeState = nodeState.set(view_vote=merge_sets(merge_sets(nodeState.view_vote, nodeState.buffer_vote), get_votes_included_in_blocks(get_all_blocks(nodeState))))
+    nodeState = nodeState.set(buffer_vote=empty_set())
+    nodeState = nodeState.set(buffer_blocks=empty_set())
     return nodeState
 
 

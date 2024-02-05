@@ -17,3 +17,12 @@ def get_valid_votes_with_FFG_target(target: Checkpoint, nodeState: NodeState) ->
             filtered_votes = filtered_votes.add(vote)
 
     return filtered_votes
+
+
+def get_set_FFG_sources(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
+    FFG_source_checkpoints: PSet[Checkpoint] = pset()
+
+    for vote in votes:
+        FFG_source_checkpoints = FFG_source_checkpoints.add(vote.message.ffg_source)
+
+    return FFG_source_checkpoints

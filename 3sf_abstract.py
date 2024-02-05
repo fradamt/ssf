@@ -132,7 +132,13 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            s_cand = nodeState.s_cand.update(filter_out_not_confirmed(nodeState)),
+            s_cand = merge_sets(
+                nodeState.s_cand,
+                filter_out_not_confirmed(
+                    get_all_blocks(nodeState),
+                    nodeState
+                )
+            )
         ),
         proposeMessages=pset(),
         voteMessages=pset()

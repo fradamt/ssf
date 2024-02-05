@@ -78,8 +78,20 @@ class NodeState(PRecord):
     current_phase: NodePhase = field(type=NodePhase)
     blocks: PMap[Hash,Block] = field() # Using field(type=dict[Hash,Block]) raises a max stack depth rec. error in execution. Same for sets below
     view_vote: PSet[SignedVoteMessage] = field()
-    view_lmd: PMap[NodeIdentity, SignedVoteMessage] = field()
     buffer_vote: PSet[SignedVoteMessage] = field()
     buffer_blocks: PMap[Hash, Block] = field()
     s_cand: PSet[Block] = field()
     chava: Block = field()
+    
+    
+@dataclass(frozen=True)
+class NewNodeStateAndMessagesToTx:
+    state: NodeState
+    proposeMessages: PSet[SignedProposeMessage]
+    voteMessages: PSet[SignedVoteMessage]
+
+
+    # Keeping the two fields before separate for now as this may help the Dafny translation
+    # We may in the future just want to use one using a common base class for propose and vote messages
+    proposeMessagesToTx: PSet[SignedProposeMessage] = field()
+    voteMessagesToTx: PSet[SignedVoteMessage] = field()

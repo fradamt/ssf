@@ -24,3 +24,25 @@ def pick_from_set(s: PSet[T1]) -> T1:
 
 def get_key_set(d: PMap[T1,T2]) -> PSet[T1]:
     return pset(d.keys())
+
+
+def get_value_set(d: PMap[T1, T2]) -> PSet[T2]:
+    return pset(d.values())
+
+def filter_pset(p: Callable[[T1], bool], s: PSet[T1]) -> PSet[T1]:
+    r: PSet[T1] = pset()
+    
+    for e in s:
+        if p(e):
+            r = r.add(e)
+
+    return r
+    # return pset(filter(p, s))
+
+def map_pset(p: Callable[[T1], T2], s: PSet[T1]) -> PSet[T2]:
+    r: PSet[T2] = pset()
+    
+    for e in s:
+        r = r.add(p(e))
+        
+    return r

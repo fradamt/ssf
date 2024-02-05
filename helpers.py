@@ -6,6 +6,7 @@ from data_structures import *
 from formal_verification_annotations import *
 from pythonic_code import *
 from stubs import *
+# from generic_helpers import filter_pset, map_pset
 
 def get_slot_from_time(time:int, nodeState: NodeState) -> int:
     return time // (4 * nodeState.configuration.delta)
@@ -44,6 +45,10 @@ def has_parent(block: Block, nodeState: NodeState) -> bool:
 def get_parent(block: Block, nodeState: NodeState) -> Block:
     Requires(has_parent(block, nodeState))
     return get_block_from_hash(block.parent_hash, nodeState)
+
+
+def get_all_blocks(nodeState: NodeState) -> PSet[Block]:
+    return get_value_set(nodeState.blocks)
 
 def is_complete_chain(block: Block, nodeState: NodeState) -> bool:
     if block == nodeState.configuration.genesis:
@@ -156,23 +161,13 @@ def is_FFG_vote_in_support_of_checkpoint(vote: SignedVoteMessage, checkpoint: Ch
 
 
 def filter_out_votes_not_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    return pset(filter(lambda x: is_FFG_vote_in_support_of_checkpoint(x, checkpoint, nodeState), votes))
+    return filter_pset(lambda x: is_FFG_vote_in_support_of_checkpoint(x, checkpoint, nodeState), votes)
 
 def get_validators_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[NodeIdentity]:
-    validators: PSet[NodeIdentity] = pset()
-
-    for vote in filter_out_votes_not_in_FFG_support_of_checkpoint(votes, checkpoint, nodeState):
-        validators = validators.add(vote.sender)
-
-    return validators
-
-def get_set_FFG_sources(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
-    FFG_source_checkpoints: PSet[Checkpoint] = pset()
-
-    for vote in votes:
-        FFG_source_checkpoints = FFG_source_checkpoints.add(vote.message.ffg_source)
-
-    return FFG_source_checkpoints
+    return map_pset(
+        lambda x: x.sender,
+        votes
+    )
 
 
 def is_justified(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
@@ -189,22 +184,15 @@ def is_justified(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
 
         return FFG_support_weight * 3 >= tot_validator_set_weight * 2
 
+
 def filter_out_non_justified_checkpoint(checkpoints: PSet[Checkpoint], nodeState: NodeState) -> PSet[Checkpoint]:
-    justified_checkpoints: PSet[Checkpoint] = pset()
-
-    for checkpoint in checkpoints:
-        if is_justified(checkpoint, nodeState):
-            justified_checkpoints = justified_checkpoints.add(checkpoint)
-
-    return justified_checkpoints
+    return filter_pset(lambda x: is_justified(x, nodeState), checkpoints)
 
 
 def get_justified_checkpoints(nodeState: NodeState) -> PSet[Checkpoint]:
-    return filter_out_non_justified_checkpoint(get_set_FFG_targets(nodeState.view_vote), nodeState).add(Checkpoint(
-        block_hash=block_hash(nodeState.configuration.genesis),
-        chkp_slot=0,
-        block_slot=0
-    ))
+    return filter_out_non_justified_checkpoint(get_set_FFG_targets(nodeState.view_vote), nodeState).add(
+        genesis_checkpoint(nodeState)
+    )
 
 def get_highest_justified_checkpoint(nodeState: NodeState) -> Checkpoint:
     highest_justified_checkpoint = genesis_checkpoint(nodeState)
@@ -217,23 +205,23 @@ def get_highest_justified_checkpoint(nodeState: NodeState) -> Checkpoint:
 
 
 def filter_out_blocks_non_ancestor_of_block(block: Block, blocks: PSet[Block], nodeState: NodeState) -> PSet[Block]:
-    pass
+    return filter_pset(
+        lambda b: is_ancestor_descendant_relationship(b, block, nodeState),
+        blocks
+    )
 
 def filter_out_votes_non_descendant_of_block(block: Block, votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    filtered_votes: PSet[SignedVoteMessage] = pset()
+    return filter_pset(
+        lambda vote :
+            has_block_hash(vote.message.head_hash, nodeState) and
+            is_ancestor_descendant_relationship(
+                block, 
+                get_block_from_hash(vote.message.head_hash, nodeState), 
+                nodeState
+            ),
+        votes
+    )
 
-    for vote in votes:
-        if  (
-                has_block_hash(vote.message.head_hash, nodeState) and
-                is_ancestor_descendant_relationship(
-                    block, 
-                    get_block_from_hash(vote.message.head_hash, nodeState), 
-                    nodeState
-                )
-        ):
-            filtered_votes.add(vote)
-
-    return filtered_votes
 
 def is_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHead: Block, nodeState: NodeState) -> bool:
     return (
@@ -242,22 +230,16 @@ def is_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHead: Blo
     )
 
 def filter_out_votes_not_for_blocks_in_blockchain(votes: PSet[SignedVoteMessage], blockchainHead: Block, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    filtered_votes: PSet[SignedVoteMessage] = pset()
-
-    for vote in votes:
-        if is_vote_for_block_in_blockchain(vote, blockchainHead, nodeState):
-            filtered_votes.add(vote)
-
-    return filtered_votes
+    return filter_pset(
+        lambda vote: is_vote_for_block_in_blockchain(vote, blockchainHead, nodeState),
+        votes
+    )
 
 def filter_out_votes_for_blocks_in_blockchain(votes: PSet[SignedVoteMessage], blockchainHead: Block, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    filtered_votes: PSet[SignedVoteMessage] = pset()
-
-    for vote in votes:
-        if not is_vote_for_block_in_blockchain(vote, blockchainHead, nodeState):
-            filtered_votes.add(vote)
-
-    return filtered_votes
+    return filter_pset(
+        lambda vote: not is_vote_for_block_in_blockchain(vote, blockchainHead, nodeState),
+        votes
+    )
 
 
 def is_vote_expired(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
@@ -265,7 +247,10 @@ def is_vote_expired(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
 
 
 def filter_out_expired_votes(votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    pass
+    return filter_pset(
+        lambda vote: is_vote_expired(vote, nodeState),
+        votes
+    )
 
 def filter_out_non_LMD_votes(votes: PSet[SignedVoteMessage]) -> PSet[SignedVoteMessage]:
     lmd: PMap[NodeIdentity, SignedVoteMessage] = pmap()
@@ -274,7 +259,7 @@ def filter_out_non_LMD_votes(votes: PSet[SignedVoteMessage]) -> PSet[SignedVoteM
         if vote.sender not in lmd or vote.message.slot > lmd[vote.sender].message.slot:
             lmd = lmd.set(vote.sender, vote)
 
-    return pset(lmd.values())
+    return get_value_set(lmd)
 
 def is_equivocating_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
     for vote_check in nodeState.view_vote:
@@ -287,8 +272,11 @@ def is_equivocating_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
 
     return False
 
-def filter_out_equivocating_votes(nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    pass
+def filter_out_equivocating_votes(votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[SignedVoteMessage]:
+    return filter_pset(
+        lambda vote: not is_equivocating_vote(vote, nodeState),
+        votes
+    )
 
 def valid_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
     return (
@@ -306,13 +294,10 @@ def valid_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
     )
 
 def filter_out_invalid_votes(votes: PSet[SignedVoteMessage], nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    filtered_votes: PSet[SignedVoteMessage] = pset()
-
-    for vote in votes:
-        if valid_vote(vote, nodeState):
-            filtered_votes.add(vote)
-
-    return filtered_votes
+    return filter_pset(
+        lambda vote: valid_vote(vote, nodeState),
+        votes
+    )
 
 def get_votes_included_in_blockchain(block: Block, nodeState: NodeState) -> PSet[SignedVoteMessage]:
     if block == nodeState.configuration.genesis or not has_block_hash(block.parent_hash, nodeState):
@@ -354,7 +339,6 @@ def get_new_block(nodeState: NodeState) -> Block:
 
 def get_votes_to_include_in_propose_message_view(nodeState: NodeState) -> PVector[SignedVoteMessage]:
     head_block = get_head(nodeState)
-    validatorBalances = get_validator_set_for_slot(head_block, nodeState.current_slot, nodeState)
     return pvector(
             filter_out_votes_for_blocks_in_blockchain(
                 filter_out_votes_non_descendant_of_block(
@@ -413,7 +397,10 @@ def get_head(nodeState: NodeState) -> Block:
         get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState),
         filter_out_non_LMD_votes(
             filter_out_expired_votes(
-                filter_out_equivocating_votes(nodeState),
+                filter_out_equivocating_votes(
+                    nodeState.view_vote,
+                    nodeState
+                ),
                 nodeState
             )
         ),
@@ -434,20 +421,6 @@ def get_head(nodeState: NodeState) -> Block:
     )
 
 
-
-
-@dataclass(frozen=True)
-class NewNodeStateAndMessagesToTx:
-    state: NodeState
-    proposeMessages: PSet[SignedProposeMessage]
-    voteMessages: PSet[SignedVoteMessage]
-
-
-    # Keeping the two fields before separate for now as this may help the Dafny translation
-    # We may in the future just want to use one using a common base class for propose and vote messages
-    proposeMessagesToTx: PSet[SignedProposeMessage] = field()
-    voteMessagesToTx: PSet[SignedVoteMessage] = field()
-
 def execute_view_merge(nodeState: NodeState) -> NodeState:
     nodeState = nodeState.set(blocks=merge_maps(nodeState.blocks, nodeState.buffer_blocks))
     nodeState = nodeState.set(view_vote=merge_sets(merge_sets(nodeState.view_vote, nodeState.buffer_vote), get_votes_included_in_blocks(pset(nodeState.buffer_blocks.values()))))
@@ -466,7 +439,7 @@ def get_block_k_deep(blockHead: Block, k: int, nodeState: NodeState) -> Block:
 
 
     
-def is_confirmed(block: Block, nodeState: NodeState, validatorBalances: ValidatorBalances) -> bool:
+def is_confirmed(block: Block, nodeState: NodeState) -> bool:
     head_block = get_head(nodeState)
     
     validatorBalances = get_validator_set_for_slot(
@@ -482,33 +455,9 @@ def is_confirmed(block: Block, nodeState: NodeState, validatorBalances: Validato
         ghost_weight(block, nodeState.view_vote, nodeState, validatorBalances) * 3 >= tot_validator_set_weight * 2
     )
     
-def filter_out_not_confirmed(nodeState: NodeState) -> PSet[Block]:
-    pass
-    
-
-
-
-
-
-# # class ARecord(PClass):
-# #     x = field(type=int)
-
-# # # n = init()
-# # # print(is_complete_chain(n.configuration.genesis,n))
-# # # print(n)
-
-
-# # m1 = m(a=1, b=2)
-# # m1 = m1.set('c', 3)
-# # m1 = m1.set('a', 5)
-
-# # print(m1)
-
-# # x = ARecord(x=5)
-# # x2 = x.set(x=3)
-
-# # print(x)
-# # print(x2)
-
-# # x2.x = 10
+def filter_out_not_confirmed(blocks: PSet[Block], nodeState: NodeState) -> PSet[Block]:
+    return filter_pset(
+        lambda block: is_confirmed(block, nodeState),
+        blocks
+    )
 

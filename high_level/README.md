@@ -17,7 +17,13 @@ However, every function must be computable within a finite, but potentially unbo
 
 Computational efficiency is intended to be handled by lower-level specifications _implementing_ this high-level specification.
 Intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$ is also an external behavior of specification $S2$.
+
+Note that it is admitted for a specification $S1$ implementing a specification $S2$ to extend the data carried by each message.
+In this case, intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$, _with the portion of data added to each message by $S1$ being removed_, is also an external behavior of specification $S2$.
+
 A more formal definition is provided below.
+
+
 
 ## How to Read the Specification
 
@@ -32,10 +38,128 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
 ```
 
 In the above, `nodeState` corresponds to the current state of a node.
-The value returned is a `dataclass` with the following three fields:
+The value returned is a `@dataclass NewNodeStateAndMessagesToTx` instance with the following three fields:
 
 - `state`: the new state of the node in response to receiving the Propose message `propose`
 - `proposeMessagesToTx`: the set, possibly empty, of Propose messages that the node must send in response  to receiving the Propose message `propose`
 - `voteMessagesToTx`: the set, possibly empty, of Vote messages that the node must send in response to  to receiving the Propose message `propose`
 
+### Formally
 
+<!-- The behavior of a node is specified as a Labelled Transition System $LTS = (S, S_0, I, O, P, T, L)$ where:
+
+- $S$ is the set, possibly infinite, of states that the node can be in
+- $S_0 \subseteq S$ is the set of possible initial states
+- $I$ is the set, possibly infinite, of input events
+- $O$ is the set, possibly infinite, of output messages
+- $P$ is the set, possibly infinite, of atomic propositions associated with each state
+- $T \subseteq S \times I \times S \times 2^O$ is the transition relation
+- $L: S \to 2^P$ is the labelling function
+
+A node starts in one of the possible initial states $S_0$.
+A node in state $s_s$, on input event $i \in I$, it can atomically move to any state $s_d$ and output any finite set of messages $M_O$ such that that $(s_s, i, s_d, M_O) \in T$.
+
+An execution path $\pi$ of $LTS$ is any possibly infinite sequence of states, input events $\pi = s_0 i_0 o_0 s_1 i_1 o_1 \cdots s_k i_k o_k s_{k+1}$ such that
+- $s_o \in S_0$
+- $\forall i \in [0, k]: (s_i, i_i, s_{i+1}, o_i) \in T$.
+
+The external behavior $E(\pi)$ of an execution path $\pi = s_0 i_0 o_0 s_1 i_1 o_1 \cdots s_k i_k o_k s_{k+1}$ corresponds to the execution path $\pi$ with each state replaced by its label, i.e., $E(\pi) = \pi = L(s_0) i_0 o_0 L(s_1) i_1 o_1 \cdots L(s_k) i_k o_k L(s_{k+1})$.
+Let $\Pi_{LTS}$ be the set of all possible paths of the labelled transition system $LTS$.
+Then the external behaviour specified by $LTS$ is $E_{LTS} := \bigcup_{\pi \in \Pi} E(\pi)$. -->
+
+
+The behavior of a node is specified by a Deterministic Labelled Transition System (DLTS) $(S, s_0, I, O, T, E, V)$ where:
+
+- $S$ is the set, possibly infinite, of states that the node can be in
+- $s_0 \in S$ is the initial state
+- $I$ is the set, possibly infinite, of input events
+- $O$ is the set, possibly infinite, of output messages
+- $T: (S \times I) \to (S \times 2^O)$ is the transition function which is defined for all elements of $S \times I$ and it guarantees that for any $s \in S$ and $i \in I$, it outputs a tuple $(s_d, M_O) = T(s, i)$ where $M_O$ is finite
+- $E$ is the set, possibly infinite, of externally visible states
+- $V: S \to E$ is the external view function which is defined for all elements of $S$
+
+A node starts in state $s_0$ and then it progresses as follows:
+From any state $s_s$ on input event $i \in I$ with $T(s_s, i) = (s_d, M_O)$, it atomically transitions to state $s_d$ and outputs the finite set of messages $M_O$.
+
+An execution path $\pi$ of a DLTS $\mathcal{D} = (S, s_0, I, O, T, E, V)$ is an infinite alternating sequence of states, input events and output messages $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \cdots  \rangle$ such that $\forall i \geq 0:  (s_{i+1}, o_i) = T(s_i, i_i)$.
+
+The external behavior $E(\pi)$ of an execution path $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle$ corresponds to the execution path $\pi$ with each state mapped to its corresponding externally visible state, i.e., $B(\pi) =  \langle V(s_0), i_0, o_0, V(s_1), i_1, o_1, V(s_2), \ldots \rangle$.
+Let $\Pi_\mathcal{{D}}$ be the set of all possible paths of the DLTS $\mathcal{D}$.
+Then the external behaviour specified by $\mathcal{D}$ is $B(\mathcal{D}) := \bigcup_{\pi \in \Pi_\mathcal{D}} B(\pi)$.
+
+A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, T^L, E^L, V^L)$ and DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, T^H, E^H, V^H)$ is a triple $M = (M_I, M_O, M_S)$ where $M_I: I^L \to I_H$, $M_O: O^L \to O^H$ and $M_S: S^L \to S^H$ are all surjective functions.
+
+In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, T^L, E^L, V^L)$ _implements_ a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, T^H, E^H, V^H)$ according to the mapping $(M_I, M_O, M_S)$ iff:
+
+<!-- 1. $M_E(V^L(s_0^L)) = V^H(s_0^H)$ -->
+
+1. $\forall s_s^L, s_d^L \in S^L, i^L \in I^L, M_O^L \in 2^{O^L}: T^L(s_s^L, i^L) = (s_d^L, M_O^L) \implies T^H(M_S(s_s^L), M_I(i^L)) = (M_S(s_d^L), M_O(M_O^L))$.
+2. $\forall e^L \in E^L : |\{V^H(M_S(s^L)) \mid s^L \in S^L \land V^L(s^L) = e^L\}| = 1$
+
+Given condition 2 above, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = V^H(M_S(s^L))$ for any $s^L \in {V^L}^{-1}(e^L)$ and we have that $\forall s^L \in S^L : V^H(M_S(s^L)) = M_E(V^L(s^L))$.
+
+
+Given the requirements on $T^L$ being a total function and the surjectivity of each function in the mapping $M$, the above essentially defines the bisimulation relation $R$ between $\mathcal{D}^L$ and $\mathcal{D}^H$ as 
+
+$R_I = \{ (s^L, i^L, s^H, i^H) \in S^L \times I^L  \times S^H \times I^H  \mid s^H=M_S(s^L) \land i^H = M_I(i^L)\}$
+
+$R_O = \{ (s^L, o^L, s^H, o^H) \in S^L \times O^L \times S^H \times O^H \mid s^H=M_S(s^L)  \land o^H=M_O(o^L)\}$
+
+Hence we have that
+<!-- - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, (s_d^L, o^L, s_d^H, o^H) \in R_O: T^L(s_s^L, i^L) = (s_d^L, o^L) \implies T^H(s_s^H, i^H) = (s_d^H, o^H)$ -->
+- $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^L \in S^L, o^L \in O^L: T^L(s_s^L, i^L) = (s_d^L, o^L) \implies (\exists s_d^H \in S^H, o^H \in O^H: T^H(s_s^H, i^H) = (s_d^H, o^H) \land (s_d^L, o^L, s_d^H, o^H) \in R_O)$
+- $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^H \in S^H, o^H \in O^H: T^H(s_s^H, i^H) = (s_d^H, o^H) \implies (\exists s_d^L \in S^L, o^L \in O^L: T^L(s_s^L, i^L) = (s_d^L, o^L) \land (s_d^H, o^H, s_d^L, o^L) \in R_O)$
+
+Given a mapping $M=(M_I, M_O, M_S)$ between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, T^L, E^L, V^L)$ and DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, T^H, E^H, V^H)$, define $B^M(\pi)$ where $\pi \in \Pi_{\mathcal{D}^L}$ as $V^H(M_S(s_0))M_I(i_0)M_O(o_0)V^H(M_S(s_1))$.
+
+According to the definition above, if a DLTS $\mathcal{D}^L$ implements a DLTS $\mathcal{D}^H$ according to the mapping $M$, then $B^M(\mathcal{D}^L) = B(\mathcal{D}^H)$.
+
+
+Let $V^{L \to H}:S^L \to E^H$ be defined as $V^{L \to H}(s^L) = V^H(M_S(s^L))$.
+
+
+
+Let $\mathcal{I}^L$
+
+A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, T^L, E^L, V^L)$ and DLTS $\mathcal{D}^H  = (S^H, s_0^H, I^H, O^H, T^H, E^H, V^H)$, let $M(\mathcal{D}^L)$ be the DLTS $(S^H, s_0^H, I^H, O^H, T, E^H, V^H)$ with:
+
+- $T(s_d, i) = T^H(M_S($
+
+#### The $LTS$ defined by this specification
+
+The set $S$ of possible states corresponds to the domain of the type $\texttt{NodeState}$.
+
+Each `@Event` annotation defines a specific subset of the input events and the transition relation.
+
+Specifically, take the following piece of code.
+
+```python
+@Event
+def foo(a_1: T1, a_2: T2, ..., a_k: TN, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
+    ...
+```
+The code above defines:
+
+- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle \mid (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $ipar(i) := a_1, a_2, \ldots, a_k$.
+- a subset of the transition relations $T_{\texttt{foo}} := \left\{(s_s, i, \texttt{foo}(ipar(i), s_s)\texttt{.state}, \texttt{foo}(ipar(i), s_s)\texttt{.proposeMessagesToTx} \cup \texttt{foo}(ipar(i), s_s)\texttt{.voteMessagesToTx}) \mid i \in I_{\texttt{foo}}, s_s \in \texttt{NodeState} \right\} \subseteq T$
+
+
+The set of input events $I$ defined by this specification corresponds to the union of the sets of events defined by each function annotated by `@Event`.
+Similarly, the transition relation $T$ defined by this specification corresponds to the union of the transition relations defined by each function annotated by `@Event`.
+
+Each `@Label` annotation defines a specific subset of the 
+Specifically, take the following piece of code.
+
+```python
+@Label
+def bar(nodeState: NodeState) -> T1:
+    ...
+```
+The code above defines a subset of the atomic propositions $P_\texttt{bar} := \{\langle \texttt{bar}, a\rangle | a \in \texttt{T1}\}$
+ the labelling function $L_\texttt{bar} := \{ \}$
+
+The set of atomic propositions $P$ corresponds to the union of the subset of atomic propositions defined by each function annotated by `@Label`.
+Let $\mathcal{L}$ be the set of all functions decorated by `@Label`.
+Then, we have that the labelling function is defined as $L(s) := \{\ell(s) \mid \ell \in \mathcal{L} \}$.
+
+The set of initial states $S_0$ defined by this specification corresponds to the singleton $\{\texttt{init()}\}$.

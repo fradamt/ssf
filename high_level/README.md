@@ -21,7 +21,7 @@ Computational efficiency is intended to be handled by lower-level specifications
 Intuitively, in the context of this work, a specification $S1$ _implements_ a specification $S2$ iff $S1$ and $S2$ exhibit the same external behaviors [^1].
 
 Note that it is admitted for a specification $S1$ implementing a specification $S2$ to extend the data carried by each message.
-In this case, intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$, _with the portion of data added to each message by $S1$ being removed_, is also an external behavior of specification $S2$.
+In this case, intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$, _with the portion of data added to each message by_ $S1$ _being removed_, is also an external behavior of specification $S2$.
 
 A more formal definition is provided below.
 
@@ -101,13 +101,13 @@ By translating the Python spec to a formal language that supports mechanized for
    3. For the composite data structures that need to be manipulated during the execution of some of the functions, base them off the `PRecord` class from the [`pyrsistent`](https://pypi.org/project/pyrsistent/) library. This is to use `PRecord`s only when strictly necessary because, as of today, MyPy cannot typecheck `PRecord`s, but it can typecheck `@dataclass`es.
 
 2. Reduce the usage of Pythonic code as much as possible. This is to have a spec with very simple semantics and therefore reduce the risk of possible misinterpretations. As a consequence of this principle, the following rules have been followed:
-    1. For all the files, except for `data_structure.py` and `pythonic_code_generic.py`, use only the following features of the Python language
-       1. Function definitions
+    1. For all the files, except for `data_structures.py` and `pythonic_code_generic.py`, use only the following features of the Python language
+       1. Function definitions and function calls
        2. `if` statements
        3. `for` statements
        4. call to the `set` method of `PRecord`s
        5. lambdas
-    2. Relegate all of the code that needs features of the Python language outside of those listed above to the file  `pythonic_code_generic.py` except for data structures definition which are placed in the file `data_structure.py`.
+    2. Relegate all of the code that needs features of the Python language outside of those listed above to the file  `pythonic_code_generic.py` except for data structure definitions which are to be placed in the file `data_structures.py`.
 
 
 ### Soft Rules
@@ -117,7 +117,7 @@ By translating the Python spec to a formal language that supports mechanized for
 ## General Rules Used in Writing this High-Level Specification
 
 1. Add a field to `NodeState` only if it cannot be computed from the others.
-2. Use the `int` type for any number. Avoid limited-size types as these are for lower-level specifications.
+2. Use fixed-size types only for message fields. For any other integer type, use `int`. Fixed-size types (except for messages) are for lower-level implementations.
 
 ## Formal Semantics [Do not read. Still under review!]
 
@@ -158,36 +158,38 @@ From any state $s_s$ on input event $i \in I$ with $t(s_s, i) = (s_d, M_O)$, it 
 
 An execution path $\pi$ of a DLTS $\mathcal{D} = (S, s_0, I, O, t, E, v)$ is an infinite alternating sequence of states, input events and output messages $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \cdots  \rangle$ such that $\forall i \geq 0:  (s_{i+1}, o_i) = t(s_i, i_i)$.
 
-The external behavior $E(\pi)$ of an execution path $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle$ corresponds to the execution path $\pi$ with each state mapped to its corresponding externally visible state, i.e., $B(\pi) =  \langle v(s_0), i_0, o_0, v(s_1), i_1, o_1, v(s_2), \ldots \rangle$.
+The external behavior $\mathsf{EB}(\pi)$ of an execution path $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle$ corresponds to the execution path $\pi$ with each state mapped to its corresponding externally visible state, i.e., $\mathsf{EB}(\pi) =  \langle v(s_0), i_0, o_0, v(s_1), i_1, o_1, v(s_2), \ldots \rangle$.
 Let $\Pi_\mathcal{{D}}$ be the set of all possible paths of the DLTS $\mathcal{D}$.
-Then the external behaviour specified by $\mathcal{D}$ is $B(\mathcal{D}) := \bigcup_{\pi \in \Pi_\mathcal{D}} B(\pi)$.
+Then the external behavior specified by $\mathcal{D}$ is $\mathsf{EB}(\mathcal{D}) := \bigcup_{\pi \in \Pi_\mathcal{D}} \mathsf{EB}(\pi)$.
 
-A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ is a triple $M = (m_I, m_O, m_S)$ where $m_I: I^L \to I_H$, $m_O: O^L \to O^H$ and $m_S: S^L \to S^H$ are all surjective functions.
+A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ is a triple $M = (m_I, m_O, m_S)$ where $m_I: I^L \to I^H$, $m_O: O^L \to O^H$ and $m_S: S^L \to S^H$ are all surjective functions.
+For any $M_O \subseteq O^L$, $m_O(M_O)$ is defined as $m_O(M_O) := \{m_O(m) : m \in M_O \}$.
 
-In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ _implements_ a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ according to the mapping $(m_I, m_O, m_S)$ iff:
+In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ _implements_ a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ according to the mapping $M=(m_I, m_O, m_S)$ iff:
 
 <!-- 1. $M_E(v^L(s_0^L)) = v^H(s_0^H)$ -->
 
-1. $\forall s_s^L, s_d^L \in S^L, i^L \in I^L, M_O^L \in 2^{O^L}: t^L(s_s^L, i^L) = (s_d^L, M_O^L) \implies t^H(m_S(s_s^L), m_I(i^L)) = (m_S(s_d^L), m_O(M_O^L))$.
-2. $\forall e^L \in E^L : |\{v^H(m_S(s^L)) \mid s^L \in S^L \land v^L(s^L) = e^L\}| = 1$
+1. $\forall s_s^L, s_d^L \in S^L, i^L \in I^L, M_O^L \subseteq O^L: t^L(s_s^L, i^L) = (s_d^L, M_O^L) \implies t^H(m_S(s_s^L), m_I(i^L)) = (m_S(s_d^L), m_O(M_O^L))$.
+2. $\forall e^L \in E^L : |\{v^H(m_S(s^L)) : s^L \in S^L \land v^L(s^L) = e^L\}| = 1$
 
-Given condition 2 above, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = v^H(m_S(s^L))$ for any $s^L \in {v^L}^{-1}(e^L)$ and we have that $\forall s^L \in S^L : v^H(m_S(s^L)) = M_E(v^L(s^L))$.
+Given condition 2 above, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = v^H(m_S(s^L))$ for any $s^L \in {v^L}^{-1}(e^L)$.
+Hence, $\forall s^L \in S^L : v^H(m_S(s^L)) = M_E(v^L(s^L))$.
 
 
-Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, the above essentially defines the bisimulation relation $R$ between $\mathcal{D}^L$ and $\mathcal{D}^H$ as 
+Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, the above essentially defines the [bisimulation](https://en.wikipedia.org/wiki/Bisimulation) relation $R$ between $\mathcal{D}^L$ and $\mathcal{D}^H$ as
 
-$R_I = \{ (s^L, i^L, s^H, i^H) \in S^L \times I^L  \times S^H \times I^H  \mid s^H=m_S(s^L) \land i^H = m_I(i^L)\}$
+$R_I = \{ (s^L, i^L, s^H, i^H) \in S^L \times I^L  \times S^H \times I^H  : s^H=m_S(s^L) \land i^H = m_I(i^L)\}$
 
-$R_O = \{ (s^L, o^L, s^H, o^H) \in S^L \times O^L \times S^H \times O^H \mid s^H=m_S(s^L)  \land o^H=m_O(o^L)\}$
+$R_O = \{ (s^L, o^L, s^H, o^H) \in S^L \times O^L \times S^H \times O^H : s^H=m_S(s^L)  \land o^H=m_O(o^L)\}$
 
 Hence we have that
 <!-- - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, (s_d^L, o^L, s_d^H, o^H) \in R_O: t^L(s_s^L, i^L) = (s_d^L, o^L) \implies t^H(s_s^H, i^H) = (s_d^H, o^H)$ -->
 - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^L \in S^L, o^L \in O^L: t^L(s_s^L, i^L) = (s_d^L, o^L) \implies (\exists s_d^H \in S^H, o^H \in O^H: t^H(s_s^H, i^H) = (s_d^H, o^H) \land (s_d^L, o^L, s_d^H, o^H) \in R_O)$
 - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^H \in S^H, o^H \in O^H: t^H(s_s^H, i^H) = (s_d^H, o^H) \implies (\exists s_d^L \in S^L, o^L \in O^L: t^L(s_s^L, i^L) = (s_d^L, o^L) \land (s_d^H, o^H, s_d^L, o^L) \in R_O)$
 
-Given a mapping $M=(m_I, m_O, m_S)$ between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$, define $B^M(\pi)$ where $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle\in \Pi_{\mathcal{D}^L}$ as $B^M(\pi) = \langle v^H(m_S(s_0)), m_I(i_0), m_O(o_0), v^H(m_S(s_1)), m_I(i_1), m_O(o_1), v^H(m_S(s_2))\ldots \rangle$.
+Given a mapping $M=(m_I, m_O, m_S)$ between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$, define $\mathsf{EB}^M(\pi)$ where $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle\in \Pi_{\mathcal{D}^L}$ as $\mathsf{EB}^M(\pi) = \langle v^H(m_S(s_0)), m_I(i_0), m_O(o_0), v^H(m_S(s_1)), m_I(i_1), m_O(o_1), v^H(m_S(s_2))\ldots \rangle$.
 
-According to the definition above, if a DLTS $\mathcal{D}^L$ implements a DLTS $\mathcal{D}^H$ according to the mapping $M$, then $B^M(\mathcal{D}^L) = B(\mathcal{D}^H)$.
+According to the definition above, if a DLTS $\mathcal{D}^L$ implements a DLTS $\mathcal{D}^H$ according to the mapping $M$, then $\mathsf{EB}^M(\mathcal{D}^L) = \mathsf{EB}(\mathcal{D}^H)$.
 
 
 <!-- Let $v^{L \to H}:S^L \to E^H$ be defined as $v^{L \to H}(s^L) = v^H(m_S(s^L))$.
@@ -215,8 +217,8 @@ def foo(a_1: T1, a_2: T2, ..., a_k: TN, node_state: NodeState) -> NewNodeStateAn
 ```
 The code above defines:
 
-- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle \mid (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $ipar(i) := a_1, a_2, \ldots, a_k$.
-- a subset of the transition relations $T_{\texttt{foo}} := \left\{(s_s, i, \texttt{foo}(ipar(i), s_s)\texttt{.state}, \texttt{foo}(ipar(i), s_s)\texttt{.proposeMessagesToTx} \cup \texttt{foo}(ipar(i), s_s)\texttt{.voteMessagesToTx}) \mid i \in I_{\texttt{foo}}, s_s \in \texttt{NodeState} \right\} \subseteq T$
+- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $ipar(i) := a_1, a_2, \ldots, a_k$.
+- a subset of the transition relations $T_{\texttt{foo}} := \left\{(s_s, i, \texttt{foo}(ipar(i), s_s)\texttt{.state}, \texttt{foo}(ipar(i), s_s)\texttt{.proposeMessagesToTx} \cup \texttt{foo}(ipar(i), s_s)\texttt{.voteMessagesToTx}) : i \in I_{\texttt{foo}}, s_s \in \texttt{NodeState} \right\} \subseteq T$
 
 
 The set of input events $I$ defined by this specification corresponds to the union of the sets of events defined by each function annotated by `@Event`.
@@ -235,6 +237,6 @@ The code above defines a subset of the atomic propositions $P_\texttt{bar} := \{
 
 The set of atomic propositions $P$ corresponds to the union of the subset of atomic propositions defined by each function annotated by `@Label`.
 Let $\mathcal{L}$ be the set of all functions decorated by `@Label`.
-Then, we have that the labelling function is defined as $L(s) := \{\ell(s) \mid \ell \in \mathcal{L} \}$.
+Then, we have that the labelling function is defined as $L(s) := \{\ell(s) : \ell \in \mathcal{L} \}$.
 
 The set of initial states $S_0$ defined by this specification corresponds to the singleton $\{\texttt{init()}\}$.

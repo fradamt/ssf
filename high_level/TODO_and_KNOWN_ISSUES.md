@@ -12,6 +12,7 @@
 - [ ] Decide whether to pass Block or Hash to functions dealing with blocks
 - [ ] Ensure that all the rules/guidelines defined for how to write the specs are applied
 - [ ] Decide whether to just use PRecords in place of @datacless
+- [ ] Decide the size of integer type fields in messages
 
 ### Protocol Definition
 

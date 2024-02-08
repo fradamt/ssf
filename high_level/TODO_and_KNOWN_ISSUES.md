@@ -2,7 +2,7 @@
 
 ## TODOs
 
-### Coding Style
+### Coding
 
 - [ ] Decide code conventions for function prefixes, in general. Specifically,
   - [ ] Is the `filter_out` prefix Ok or do we prefer something else?
@@ -10,10 +10,13 @@
 - [ ] Decide when to pass the set of `votes` in a function and when just passing `nodeState` is enough.
 - [ ] Decide whether to use max function rather the having manual implementation of it every time that is needed
 - [ ] Decide whether to pass Block or Hash to functions dealing with blocks
+- [ ] Ensure that all the rules/guidelines defined for how to write the specs are applied
 
 ### Protocol Definition
 
 - [ ] Add slashing
+- [ ] Code @Init function
+- [ ] Fill in stubs
 
 ## Known Issues
 

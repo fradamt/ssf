@@ -6,6 +6,9 @@ RetType = TypeVar("RetType")
 def Requires(expr: bool) -> None:
     pass
 
+def Init(c:Callable[Param, RetType]) -> Callable[Param, RetType]:
+    return c
+
 def Event(c:Callable[Param, RetType]) -> Callable[Param, RetType]:
     return c
 

@@ -4,7 +4,7 @@ from pythonic_code_generic import *
 from stubs import *
 from helpers import *
 
-# TBD
+# @Init
 # def init() -> NodeState:
 #     return NodeState(
 #         identity=NodeIdentity(),
@@ -149,7 +149,7 @@ def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
 @Event
 def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
-    # nodeState = on_block_received(propose.message.block, nodeState)
+    nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
     if nodeState.current_phase == NodePhase.PROPOSE: # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         nodeState = nodeState.set(
             view_vote=nodeState.view_vote.union(propose.message.proposer_view),

@@ -4,7 +4,9 @@ This folder contains an initial high-level specification of the 3SF protocol.
 
 ## Status
 
-The current specification is just a start and is therefore rather incomplete.
+The current specification is just a start and is therefore is still incomplete.
+
+A list of TODOs and Known Issues are detailed in the file [TODO_and_KNOWN_ISSUES.md](TODO_and_KNOWN_ISSUES.md).
 
 ## Intent
 
@@ -27,7 +29,7 @@ A more formal definition is provided below.
 
 ### Files
 
-- `3sf_high_level.py` is the "entry" point of the specification. It includes all the event handlers.
+- `3sf_high_level.py` is the "entry" point of the specification. It includes all the event handlers and the functions specifying the external view of the state of a node (more on this below).
 - `helpers.py` contains all of the helper functions used by `3sf_high_level.py`.
 - `data_structures.py` contains all the data structure definitions.
 - `stubs.pyi` contains functions that have not yet been defined.
@@ -52,6 +54,10 @@ The value returned is a `@dataclass NewNodeStateAndMessagesToTx` instance with t
 - `proposeMessagesToTx`: the set, possibly empty, of Propose messages that the node must send in response  to receiving the Propose message `propose`
 - `voteMessagesToTx`: the set, possibly empty, of Vote messages that the node must send in response to  to receiving the Propose message `propose`
 
+### Initial State
+
+The dummy decorator `@Init` is used to denote the function that returns the initial `NodeState`.
+
 ### External View
 
 The dummy decorator `@View` is used the define which portion of the node state is externally visible.
@@ -69,6 +75,21 @@ def available_chain(nodeState: NodeState) -> PVector[Block]:
     ...
 ```
 
+### `Requires` Statements
+
+`Requires` are dummy statements are used to annotate functions with pre-conditions, that is, conditions that are assumed to always be true every time that the function is called.
+It is the responsibility of the callers to ensure that this is the case.
+
+For example, the Python code below states that every time that `get_parent(block, nodeState)` is called, the caller must ensure that `has_parent(block, nodeState) == True` and, hence, the function `get_parent` can assume that this condition is always satisfied any time that it is executed.
+
+```python
+def get_parent(block: Block, nodeState: NodeState) -> Block:
+    Requires(has_parent(block, nodeState))
+    return get_block_from_hash(block.parent_hash, nodeState)
+```
+
+By translating the Python spec to a formal language that supports mechanised formal verification, it will be possible to have a mechanical formal proof that every time that `get_parent(block, nodeState)` is called, `has_parent(block, nodeState) == True`.
+
 
 ## General Rules Used in Writing the Python Code
 
@@ -81,7 +102,8 @@ def available_chain(nodeState: NodeState) -> PVector[Block]:
        1. Function definitions
        2. `if` statements
        3. `for` statements
-       4. lambdas
+       4. call to the `set` method of `PRecord`s
+       5. lambdas
     2. Relegate all of the code that needs features of the Python language outside of those listed above to the file  `pythonic_code_generic.py` except for data structures definition which are placed in the file `data_structure.py`.
 
 
@@ -93,7 +115,7 @@ def available_chain(nodeState: NodeState) -> PVector[Block]:
 
 1. Add a field to `NodeState` only if it cannot be computed from the others. 
 
-### Formally
+## Formal Semantics [WIP]
 
 <!-- The behavior of a node is specified as a Labelled Transition System $LTS = (S, S_0, I, O, P, T, L)$ where:
 
@@ -164,7 +186,7 @@ Given a mapping $M=(m_I, m_O, m_S)$ between a DLTS $\mathcal{D}^L = (S^L, s_0^L,
 According to the definition above, if a DLTS $\mathcal{D}^L$ implements a DLTS $\mathcal{D}^H$ according to the mapping $M$, then $B^M(\mathcal{D}^L) = B(\mathcal{D}^H)$.
 
 
-Let $v^{L \to H}:S^L \to E^H$ be defined as $v^{L \to H}(s^L) = v^H(m_S(s^L))$.
+<!-- Let $v^{L \to H}:S^L \to E^H$ be defined as $v^{L \to H}(s^L) = v^H(m_S(s^L))$.
 
 
 
@@ -172,7 +194,7 @@ Let $\mathcal{I}^L$
 
 A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and DLTS $\mathcal{D}^H  = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$, let $M(\mathcal{D}^L)$ be the DLTS $(S^H, s_0^H, I^H, O^H, t, E^H, v^H)$ with:
 
-- $t(s_d, i) = t^H(m_S($
+- $t(s_d, i) = t^H(m_S($ -->
 
 #### The $LTS$ defined by this specification
 

@@ -478,7 +478,13 @@ def get_head(nodeState: NodeState) -> Block:
 
 def execute_view_merge(nodeState: NodeState) -> NodeState:
     nodeState = nodeState.set(blocks=pmap_merge(nodeState.blocks, nodeState.buffer_blocks))
-    nodeState = nodeState.set(view_vote=set_merge(set_merge(nodeState.view_vote, nodeState.buffer_vote), get_votes_included_in_blocks(get_all_blocks(nodeState))))
+    nodeState = nodeState.set(view_vote=set_merge(
+        set_merge(
+            nodeState.view_vote, 
+            nodeState.buffer_vote
+        ), 
+        get_votes_included_in_blocks(get_all_blocks(nodeState)))
+    )
     nodeState = nodeState.set(buffer_vote=set_get_empty())
     nodeState = nodeState.set(buffer_blocks=set_get_empty())
     return nodeState

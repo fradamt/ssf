@@ -113,7 +113,8 @@ By translating the Python spec to a formal language that supports mechanised for
 
 ## General Rules Used in Writing this High-Level Specification
 
-1. Add a field to `NodeState` only if it cannot be computed from the others. 
+1. Add a field to `NodeState` only if it cannot be computed from the others.
+2. Use the `int` type for any number. Avoid limited-size types as these are for lower-level specifications.
 
 ## Formal Semantics [WIP]
 

@@ -21,7 +21,6 @@ def set_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
     return a.union(b)
 
 
-
 def set_get_singleton(e: T1) -> PSet[T1]:
     return pset([e])
 
@@ -49,6 +48,13 @@ def pset_map(p: Callable[[T1], T2], s: PSet[T1]) -> PSet[T2]:
         r = r.add(p(e))
         
     return r
+
+def pmap_has(pm: PMap[T1, T2], k: T1) -> bool:
+    return k in pm
+
+def pmap_get(pm: PMap[T1, T2], k: T1) -> T2:
+    Requires(pmap_has(pm, k))
+    return pm[k]
 
 def pmap_get_empty() -> PMap[T1, T2]:
     return pmap()

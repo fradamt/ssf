@@ -29,11 +29,11 @@ def genesis_checkpoint(nodeState: NodeState) -> Checkpoint:
     )
 
 def has_block_hash(block_hash: Hash, nodeState: NodeState) -> bool:
-    return block_hash in nodeState.blocks
+    return pmap_has(nodeState.blocks, block_hash)
 
 def get_block_from_hash(block_hash: Hash, nodeState: NodeState) -> Block:
     Requires(has_block_hash(block_hash, nodeState))
-    return get_block_from_hash(block_hash, nodeState)
+    return pmap_get(nodeState.blocks, block_hash)
 
 def has_parent(block: Block, nodeState: NodeState) -> bool:
     return has_block_hash(block.parent_hash, nodeState)
@@ -158,11 +158,11 @@ def is_FFG_vote_in_support_of_checkpoint(vote: SignedVoteMessage, checkpoint: Ch
 
 
 def filter_out_votes_not_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    return pset_filter(lambda x: is_FFG_vote_in_support_of_checkpoint(x, checkpoint, nodeState), votes)
+    return pset_filter(lambda vote: is_FFG_vote_in_support_of_checkpoint(vote, checkpoint, nodeState), votes)
 
 def get_validators_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[NodeIdentity]:
     return pset_map(
-        lambda x: x.sender,
+        lambda vote: vote.sender,
         votes
     )
 

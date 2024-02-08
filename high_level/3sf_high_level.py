@@ -20,6 +20,7 @@ from helpers import *
 #         )
 #     )
 
+
 @Event
 def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
     new_slot = get_slot_from_time(time, nodeState)
@@ -43,6 +44,7 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
             proposeMessagesToTx=set_get_empty(),
             voteMessagesToTx=set_get_empty()
         )
+
 
 def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
@@ -71,6 +73,7 @@ def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
             proposeMessagesToTx=set_get_empty(),
             voteMessagesToTx=set_get_empty()
         )
+
 
 def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     ch = get_head(nodeState)
@@ -125,10 +128,11 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         voteMessagesToTx=set_get_singleton(signedVoteMessage)
     )
 
+
 def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            s_cand = set_merge(
+            s_cand=set_merge(
                 nodeState.s_cand,
                 filter_out_not_confirmed(
                     get_all_blocks(nodeState),
@@ -140,6 +144,7 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         voteMessagesToTx=set_get_empty()
     )
 
+
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
@@ -147,10 +152,11 @@ def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         voteMessagesToTx=set_get_empty()
     )
 
+
 @Event
 def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
-    nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
-    if nodeState.current_phase == NodePhase.PROPOSE: # Is this Ok or do we need to also include 4\Delta t + \Delta ?
+    nodeState.set(buffer_blocks=nodeState.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
+    if nodeState.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         nodeState = nodeState.set(
             view_vote=nodeState.view_vote.union(propose.message.proposer_view),
         )
@@ -161,28 +167,30 @@ def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> 
         voteMessagesToTx=set_get_empty()
     )
 
+
 @Event
 def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
-        state=nodeState.set(buffer_blocks = nodeState.buffer_blocks.set(block_hash(block), block)),
+        state=nodeState.set(buffer_blocks=nodeState.buffer_blocks.set(block_hash(block), block)),
         proposeMessagesToTx=set_get_empty(),
         voteMessagesToTx=set_get_empty()
     )
+
 
 @Event
 def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            buffer_vote=
-                set_add(
-                    nodeState.buffer_vote,
-                    vote
-                )
+            buffer_vote=set_add(
+                nodeState.buffer_vote,
+                vote
+            )
         ),
         proposeMessagesToTx=set_get_empty(),
         voteMessagesToTx=set_get_empty()
     )
-    
+
+
 @View
 def finalized_chain(nodeState: NodeState) -> PVector[Block]:
     return get_blockchain(
@@ -192,7 +200,8 @@ def finalized_chain(nodeState: NodeState) -> PVector[Block]:
         ),
         nodeState
     )
-    
+
+
 @View
 def available_chain(nodeState: NodeState) -> PVector[Block]:
     return get_blockchain(

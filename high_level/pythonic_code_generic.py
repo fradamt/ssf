@@ -6,6 +6,9 @@ from formal_verification_annotations import *
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
 
+def pvector_of_one_element(e: T1) -> PVector[T1]:
+    return pvector([e])
+
 def pvector_concat(a: PVector[T1], b: PVector[T1]) -> PVector[T1]:
     return a.extend(b)
 

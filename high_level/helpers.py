@@ -43,7 +43,6 @@ def get_parent(block: Block, nodeState: NodeState) -> Block:
     Requires(has_parent(block, nodeState))
     return get_block_from_hash(block.parent_hash, nodeState)
 
-
 def get_all_blocks(nodeState: NodeState) -> PSet[Block]:
     return pmap_values(nodeState.blocks)
 
@@ -54,7 +53,16 @@ def is_complete_chain(block: Block, nodeState: NodeState) -> bool:
         return False
     else:
         return is_complete_chain(get_parent(block, nodeState), nodeState)
-
+    
+def get_blockchain(block: Block, nodeState: NodeState) -> PVector[Block]:
+    Requires(is_complete_chain(block, nodeState))
+    if block == nodeState.configuration.genesis:
+        return pvector_of_one_element(block)
+    else:
+        return pvector_concat(
+            pvector_of_one_element(block), 
+            get_blockchain(get_parent(block, nodeState), nodeState)
+        )
 
 def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, nodeState: NodeState) -> bool:
     if ancestor == descendant:
@@ -147,24 +155,30 @@ def get_ancestor_FFG_sources(checkpoint: Checkpoint, votes: PSet[SignedVoteMessa
 
     return ancestor_checkpoint
 
-def is_FFG_vote_in_support_of_checkpoint(vote: SignedVoteMessage, checkpoint: Checkpoint, nodeState: NodeState) -> bool:
+def is_FFG_vote_in_support_of_checkpoint_justification(vote: SignedVoteMessage, checkpoint: Checkpoint, nodeState: NodeState) -> bool:
     return (
         valid_vote(vote, nodeState) and
         vote.message.ffg_target.chkp_slot == checkpoint.chkp_slot and
-        is_ancestor_descendant_relationship(get_block_from_hash(checkpoint.block_hash, nodeState), get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), nodeState) and
-        is_ancestor_descendant_relationship(get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), get_block_from_hash(checkpoint.block_hash, nodeState), nodeState) and
+        is_ancestor_descendant_relationship(
+            get_block_from_hash(checkpoint.block_hash, nodeState), 
+            get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), 
+            nodeState) and
+        is_ancestor_descendant_relationship(
+            get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), 
+            get_block_from_hash(checkpoint.block_hash, nodeState), 
+            nodeState) and
         is_justified(vote.message.ffg_source, nodeState)
     )
 
 
 def filter_out_votes_not_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[SignedVoteMessage]:
-    return pset_filter(lambda vote: is_FFG_vote_in_support_of_checkpoint(vote, checkpoint, nodeState), votes)
+    return pset_filter(lambda vote: is_FFG_vote_in_support_of_checkpoint_justification(vote, checkpoint, nodeState), votes)
 
 def get_validators_in_FFG_support_of_checkpoint(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, nodeState: NodeState) -> PSet[NodeIdentity]:
     return pset_map(
         lambda vote: vote.sender,
-        votes
-    )
+        filter_out_votes_not_in_FFG_support_of_checkpoint(votes, checkpoint, nodeState)
+    )   
 
 
 def is_justified(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
@@ -181,9 +195,8 @@ def is_justified(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
 
         return FFG_support_weight * 3 >= tot_validator_set_weight * 2
 
-
 def filter_out_non_justified_checkpoint(checkpoints: PSet[Checkpoint], nodeState: NodeState) -> PSet[Checkpoint]:
-    return pset_filter(lambda x: is_justified(x, nodeState), checkpoints)
+    return pset_filter(lambda checkpoint: is_justified(checkpoint, nodeState), checkpoints)
 
 
 def get_justified_checkpoints(nodeState: NodeState) -> PSet[Checkpoint]:
@@ -201,6 +214,50 @@ def get_highest_justified_checkpoint(nodeState: NodeState) -> Checkpoint:
 
     return highest_justified_checkpoint
 
+def is_FFG_vote_for_a_checkpoint_in_next_slot(vote: SignedVoteMessage, checkpoint: Checkpoint, nodeState: NodeState) -> bool:
+    return (
+        valid_vote(vote, nodeState) and
+        vote.message.ffg_target.chkp_slot == checkpoint.chkp_slot + 1
+    )
+
+def filter_out_FFG_votes_not_for_a_checkpoint_in_next_slot(checkpoint: Checkpoint, nodeState: NodeState) -> PSet[SignedVoteMessage]:
+    return pset_filter(lambda vote: is_FFG_vote_for_a_checkpoint_in_next_slot(vote, checkpoint, nodeState), nodeState.view_vote)
+
+
+def get_validators_in_FFG_support_for_a_checkpoint_in_next_slot(checkpoint: Checkpoint, nodeState) -> PSet[NodeIdentity]:
+    return pset_map(
+        lambda vote: vote.sender,
+        filter_out_FFG_votes_not_for_a_checkpoint_in_next_slot(checkpoint, nodeState)
+    )
+    
+def is_finalized_checkpoint(checkpoint: Checkpoint, nodeState: NodeState) -> bool:
+    if is_justified(checkpoint, nodeState):
+        return False
+
+    validatorBalances = get_validator_set_for_slot(get_block_from_hash(checkpoint.block_hash, nodeState), checkpoint.block_slot, nodeState)
+    FFG_support_weight = validator_set_weight(get_validators_in_FFG_support_for_a_checkpoint_in_next_slot(checkpoint, nodeState), validatorBalances)
+    tot_validator_set_weight = validator_set_weight(pmap_keys(validatorBalances), validatorBalances)
+    
+    return FFG_support_weight * 3 >= tot_validator_set_weight * 2
+
+def filter_out_non_finalized_checkpoint(checkpoints: PSet[Checkpoint], nodeState: NodeState) -> PSet[Checkpoint]:
+    return pset_filter(lambda checkpoint: is_finalized_checkpoint(checkpoint, nodeState), checkpoints)
+
+
+def get_finalized_checkpoints(nodeState: NodeState) -> PSet[Checkpoint]:
+    return set_add(
+        filter_out_non_finalized_checkpoint(get_set_FFG_targets(nodeState.view_vote), nodeState),
+        genesis_checkpoint(nodeState)
+    )
+
+def get_highest_finalized_checkpoint(nodeState: NodeState) -> Checkpoint:
+    highest_finalized_checkpoint = genesis_checkpoint(nodeState)
+
+    for checkpoint in get_finalized_checkpoints(nodeState):
+        if checkpoint.chkp_slot > highest_finalized_checkpoint.chkp_slot:
+            highest_finalized_checkpoint = checkpoint
+
+    return highest_finalized_checkpoint
 
 def filter_out_blocks_non_ancestor_of_block(block: Block, blocks: PSet[Block], nodeState: NodeState) -> PSet[Block]:
     return pset_filter(

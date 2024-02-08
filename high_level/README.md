@@ -10,7 +10,7 @@ The current specification is just a start and is therefore rather incomplete.
 
 This high-level specification aims to specify the external behavior of a node implementing the 3SF protocol.
 
-Intuitively, the external behavior corresponds to the messages sent and the canonical chain exposed by a node in response to a given sequence of input events (messages received and time updates).
+Intuitively, the external behavior corresponds to the messages that a  node sends and how a selected view of the state of a node (e.g. finalized and available chain) changes in response to a given sequence of input events (messages received and time updates).
 
 This specification is not concerned with computational efficiency at all.
 However, every function must be computable within a finite, but potentially unbounded, amount of time.
@@ -30,8 +30,8 @@ A more formal definition is provided below.
 - `3sf_high_level.py` is the "entry" point of the specification. It includes all the event handlers.
 - `helpers.py` contains all of the helper functions used by `3sf_high_level.py`.
 - `data_structures.py` contains all the data structure definitions.
-- `stubs.`pyi` contains functions that have not yet been defined.
-- `formal_verification_annotations.py` include the definition of all the annotations used to aid the formal verification of this specification.
+- `stubs.pyi` contains functions that have not yet been defined.
+- `formal_verification_annotations.py` includes the definition of all the annotations used to aid the formal verification of this specification.
 
 ### Event Handlers
 
@@ -51,6 +51,24 @@ The value returned is a `@dataclass NewNodeStateAndMessagesToTx` instance with t
 - `state`: the new state of the node in response to receiving the Propose message `propose`
 - `proposeMessagesToTx`: the set, possibly empty, of Propose messages that the node must send in response  to receiving the Propose message `propose`
 - `voteMessagesToTx`: the set, possibly empty, of Vote messages that the node must send in response to  to receiving the Propose message `propose`
+
+### External View
+
+The dummy decorator `@View` is used the define which portion of the node state is externally visible.
+As mentioned above, this spec does not specify how the state of a node evolves, but only how the externally visible state of a node evolves.
+
+For example, the following Python code expresses that the externally visible state of a node corresponds to its finalized chain and available chain as returned by the functions `finalized_chain` and `available_chain` respectively.
+
+```python
+@View
+def finalized_chain(nodeState: NodeState) -> PVector[Block]:
+    ...
+
+@View
+def available_chain(nodeState: NodeState) -> PVector[Block]:
+    ...
+```
+
 
 ## General Rules Used in Writing the Python Code
 

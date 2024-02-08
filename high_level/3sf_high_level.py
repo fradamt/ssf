@@ -182,3 +182,20 @@ def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeSt
         proposeMessagesToTx=set_get_empty(),
         voteMessagesToTx=set_get_empty()
     )
+    
+@View
+def finalized_chain(nodeState: NodeState) -> PVector[Block]:
+    return get_blockchain(
+        get_block_from_hash(
+            get_highest_finalized_checkpoint(nodeState).block_hash,
+            nodeState
+        ),
+        nodeState
+    )
+    
+@View
+def available_chain(nodeState: NodeState) -> PVector[Block]:
+    return get_blockchain(
+        nodeState.chava,
+        nodeState
+    )

@@ -8,3 +8,6 @@ def Requires(expr: bool) -> None:
 
 def Event(c:Callable[Param, RetType]) -> Callable[Param, RetType]:
     return c
+
+def View(c:Callable[Param, RetType]) -> Callable[Param, RetType]:
+    return c

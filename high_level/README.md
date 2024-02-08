@@ -43,11 +43,11 @@ For example, the following Python function specifies how the node should behave 
 
 ```python
 @Event
-def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
+def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     ...
 ```
 
-In the above, `nodeState` corresponds to the current state of a node.
+In the above, `node_state` corresponds to the current state of a node.
 The value returned is a `@dataclass NewNodeStateAndMessagesToTx` instance with the following three fields:
 
 - `state`: the new state of the node in response to receiving the Propose message `propose`
@@ -67,11 +67,11 @@ For example, the following Python code expresses that the externally visible sta
 
 ```python
 @View
-def finalized_chain(nodeState: NodeState) -> PVector[Block]:
+def finalized_chain(node_state: NodeState) -> PVector[Block]:
     ...
 
 @View
-def available_chain(nodeState: NodeState) -> PVector[Block]:
+def available_chain(node_state: NodeState) -> PVector[Block]:
     ...
 ```
 
@@ -80,15 +80,15 @@ def available_chain(nodeState: NodeState) -> PVector[Block]:
 `Requires` are dummy statements are used to annotate functions with pre-conditions, that is, conditions that are assumed to always be true every time that the function is called.
 It is the responsibility of the callers to ensure that this is the case.
 
-For example, the Python code below states that every time that `get_parent(block, nodeState)` is called, the caller must ensure that `has_parent(block, nodeState) == True` and, hence, the function `get_parent` can assume that this condition is always satisfied any time that it is executed.
+For example, the Python code below states that every time that `get_parent(block, node_state)` is called, the caller must ensure that `has_parent(block, node_state) == True` and, hence, the function `get_parent` can assume that this condition is always satisfied any time that it is executed.
 
 ```python
-def get_parent(block: Block, nodeState: NodeState) -> Block:
-    Requires(has_parent(block, nodeState))
-    return get_block_from_hash(block.parent_hash, nodeState)
+def get_parent(block: Block, node_state: NodeState) -> Block:
+    Requires(has_parent(block, node_state))
+    return get_block_from_hash(block.parent_hash, node_state)
 ```
 
-By translating the Python spec to a formal language that supports mechanized formal verification, it will be possible to have a mechanical formal proof that every time that `get_parent(block, nodeState)` is called, `has_parent(block, nodeState) == True`.
+By translating the Python spec to a formal language that supports mechanized formal verification, it will be possible to have a mechanical formal proof that every time that `get_parent(block, node_state)` is called, `has_parent(block, node_state) == True`.
 
 
 ## General Rules Used in Writing the Python Code
@@ -112,7 +112,7 @@ By translating the Python spec to a formal language that supports mechanized for
 
 ### Soft Rules
 
-1. Employ functions effectively to encapsulate the semantics of operations. This is to improve readability. For example, rather than using `nodeState.blocks[hash]` throughout the code to retrieve a block with hash `hash`, define and use the function `get_block_from_hash(Hash, NodeState)` which better captures the semantics.
+1. Employ functions effectively to encapsulate the semantics of operations. This is to improve readability. For example, rather than using `node_state.blocks[hash]` throughout the code to retrieve a block with hash `hash`, define and use the function `get_block_from_hash(Hash, NodeState)` which better captures the semantics.
 
 ## General Rules Used in Writing this High-Level Specification
 

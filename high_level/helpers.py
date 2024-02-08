@@ -104,6 +104,7 @@ def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
         votes
     )
 
+
 def is_FFG_vote_in_support_of_checkpoint_justification(vote: SignedVoteMessage, checkpoint: Checkpoint, nodeState: NodeState) -> bool:
     return (
         valid_vote(vote, nodeState) and
@@ -242,8 +243,8 @@ def is_GHOST_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHea
     return (
         has_block_hash(vote.message.head_hash, nodeState) and
         is_ancestor_descendant_relationship(
-            get_block_from_hash(vote.message.head_hash, nodeState), 
-            blockchainHead, 
+            get_block_from_hash(vote.message.head_hash, nodeState),
+            blockchainHead,
             nodeState)
     )
 
@@ -309,12 +310,12 @@ def valid_vote(vote: SignedVoteMessage, nodeState: NodeState) -> bool:
         is_complete_chain(get_block_from_hash(vote.message.head_hash, nodeState), nodeState) and
         pmap_has(get_validator_set_for_slot(get_block_from_hash(vote.message.head_hash, nodeState), vote.message.slot, nodeState), vote.sender) and
         is_ancestor_descendant_relationship(
-            get_block_from_hash(vote.message.ffg_source.block_hash, nodeState), 
-            get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), 
+            get_block_from_hash(vote.message.ffg_source.block_hash, nodeState),
+            get_block_from_hash(vote.message.ffg_target.block_hash, nodeState),
             nodeState) and
         is_ancestor_descendant_relationship(
-            get_block_from_hash(vote.message.ffg_target.block_hash, nodeState), 
-            get_block_from_hash(vote.message.head_hash, nodeState), 
+            get_block_from_hash(vote.message.ffg_target.block_hash, nodeState),
+            get_block_from_hash(vote.message.head_hash, nodeState),
             nodeState) and
         vote.message.ffg_source.chkp_slot < vote.message.ffg_target.chkp_slot and
         has_block_hash(vote.message.ffg_source.block_hash, nodeState) and
@@ -404,8 +405,8 @@ def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], nodeState: No
         if (
             has_block_hash(vote.message.head_hash, nodeState) and  # Perhaps not needed
             is_ancestor_descendant_relationship(
-                block, 
-                get_block_from_hash(vote.message.head_hash, nodeState), 
+                block,
+                get_block_from_hash(vote.message.head_hash, nodeState),
                 nodeState) and
             vote.sender in validatorBalances
         ):

@@ -50,8 +50,10 @@ def pset_filter(p: Callable[[T1], bool], s: PSet[T1]) -> PSet[T1]:
     return r
     # return pset(filter(p, s))
 
+
 def from_pvector_to_pset(v: PVector[T1]) -> PSet[T1]:
     return pset(v)
+
 
 def pset_map(p: Callable[[T1], T2], s: PSet[T1]) -> PSet[T2]:
     r: PSet[T2] = pset()

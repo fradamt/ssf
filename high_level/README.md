@@ -20,8 +20,6 @@ However, every function must be computable within a finite, but potentially unbo
 Computational efficiency is intended to be handled by lower-level specifications _implementing_ this high-level specification.
 Intuitively, in the context of this work, a specification $S1$ _implements_ a specification $S2$ iff $S1$ and $S2$ exhibit the same external behaviors [^1].
 
-[^1]: Here is the footnote.
-
 Note that it is admitted for a specification $S1$ implementing a specification $S2$ to extend the data carried by each message.
 In this case, intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$, _with the portion of data added to each message by $S1$ being removed_, is also an external behavior of specification $S2$.
 

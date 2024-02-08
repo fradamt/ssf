@@ -41,8 +41,8 @@ def on_tick(nodeState: NodeState, time: int) -> NewNodeStateAndMessagesToTx:
     else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessagesToTx=set_get_empty(),
-            voteMessagesToTx=set_get_empty()
+            proposeMessagesToTx=pset_get_empty(),
+            voteMessagesToTx=pset_get_empty()
         )
 
 
@@ -63,21 +63,21 @@ def on_propose(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessagesToTx=set_get_singleton(signed_propose),
-            voteMessagesToTx=set_get_empty()
+            proposeMessagesToTx=pset_get_singleton(signed_propose),
+            voteMessagesToTx=pset_get_empty()
         )
 
     else:
         return NewNodeStateAndMessagesToTx(
             state=nodeState,
-            proposeMessagesToTx=set_get_empty(),
-            voteMessagesToTx=set_get_empty()
+            proposeMessagesToTx=pset_get_empty(),
+            voteMessagesToTx=pset_get_empty()
         )
 
 
 def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     ch = get_head(nodeState)
-    s_cand = set_add(
+    s_cand = pset_add(
         filter_out_blocks_non_ancestor_of_block(
             ch,
             nodeState.s_cand,
@@ -86,7 +86,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
         get_block_from_hash(get_highest_justified_checkpoint(nodeState).block_hash, nodeState)
     )
 
-    bcand = set_pick_element(s_cand)
+    bcand = pset_pick_element(s_cand)
     for block in s_cand:
         if block.slot > bcand.slot:
             bcand = block
@@ -111,7 +111,7 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     signedVoteMessage = sign_vote_message(
         VoteMessage(
             slot=nodeState.current_slot,
-            head_hash=block_hash(ch),
+            head_hash=block_hash(get_head(nodeState)),
             ffg_source=get_highest_justified_checkpoint(nodeState),
             ffg_target=Checkpoint(
                 block_hash=block_hash(nodeState.chava),
@@ -124,15 +124,15 @@ def on_vote(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
 
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_singleton(signedVoteMessage)
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_singleton(signedVoteMessage)
     )
 
 
 def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            s_cand=set_merge(
+            s_cand=pset_merge(
                 nodeState.s_cand,
                 filter_out_not_confirmed(
                     get_all_blocks(nodeState),
@@ -140,40 +140,45 @@ def on_confirm(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
                 )
             )
         ),
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_empty()
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_empty()
     )
 
 
 def on_merge(nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=execute_view_merge(nodeState),
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_empty()
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_empty()
     )
 
 
 @Event
 def on_received_propose(propose: SignedProposeMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
-    nodeState.set(buffer_blocks=nodeState.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
+    nodeState.set(
+        buffer_blocks=nodeState.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
+
     if nodeState.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         nodeState = nodeState.set(
-            view_vote=nodeState.view_vote.union(propose.message.proposer_view),
+            view_vote=pset_merge(
+                nodeState.view_vote,
+                from_pvector_to_pset(propose.message.proposer_view))
         )
 
     return NewNodeStateAndMessagesToTx(
         state=nodeState,
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_empty()
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_empty()
     )
 
 
 @Event
 def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
-        state=nodeState.set(buffer_blocks=nodeState.buffer_blocks.set(block_hash(block), block)),
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_empty()
+        state=nodeState.set(
+            buffer_blocks=nodeState.buffer_blocks.set(block_hash(block), block)),
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_empty()
     )
 
 
@@ -181,13 +186,13 @@ def on_block_received(block: Block, nodeState: NodeState) -> NewNodeStateAndMess
 def on_vote_received(vote: SignedVoteMessage, nodeState: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=nodeState.set(
-            buffer_vote=set_add(
+            buffer_vote=pset_add(
                 nodeState.buffer_vote,
                 vote
             )
         ),
-        proposeMessagesToTx=set_get_empty(),
-        voteMessagesToTx=set_get_empty()
+        proposeMessagesToTx=pset_get_empty(),
+        voteMessagesToTx=pset_get_empty()
     )
 
 

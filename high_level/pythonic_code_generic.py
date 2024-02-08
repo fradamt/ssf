@@ -19,23 +19,23 @@ def from_set_to_pvector(s: PSet[T1]) -> PVector[T1]:
     return pvector(s)
 
 
-def set_get_empty() -> PSet[T1]:
+def pset_get_empty() -> PSet[T1]:
     return pset()
 
 
-def set_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
+def pset_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
     return a.union(b)
 
 
-def set_get_singleton(e: T1) -> PSet[T1]:
+def pset_get_singleton(e: T1) -> PSet[T1]:
     return pset([e])
 
 
-def set_add(s: PSet[T1], e: T1) -> PSet[T1]:
+def pset_add(s: PSet[T1], e: T1) -> PSet[T1]:
     return s.add(e)
 
 
-def set_pick_element(s: PSet[T1]) -> T1:
+def pset_pick_element(s: PSet[T1]) -> T1:
     Requires(len(s) > 0)
     return list(s)[0]
 
@@ -50,6 +50,8 @@ def pset_filter(p: Callable[[T1], bool], s: PSet[T1]) -> PSet[T1]:
     return r
     # return pset(filter(p, s))
 
+def from_pvector_to_pset(v: PVector[T1]) -> PSet[T1]:
+    return pset(v)
 
 def pset_map(p: Callable[[T1], T2], s: PSet[T1]) -> PSet[T2]:
     r: PSet[T2] = pset()

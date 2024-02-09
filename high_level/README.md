@@ -206,11 +206,35 @@ A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$
 
 - $t(s_d, i) = t^H(m_S($ -->
 
-#### The $LTS$ defined by this specification
+## The DLTS defined by this specification
 
-The set $S$ of possible states corresponds to the domain of the type $\texttt{NodeState}$.
+### Set of States
 
-Each `@Event` annotation defines a specific subset of the input events and the transition relation.
+The set $S$ of possible states corresponds to the domain of the type `NodeState`.
+
+### Initial State
+
+The initial state $s_0$ corresponds to the value return by the function annotated with `@Init`.
+
+### Output Messages
+
+The `@dataclass` `NewNodeStateAndMessagesToTx` has the following definition
+
+```python
+@dataclass(frozen=True)
+class NewNodeStateAndMessagesToTx:
+    state: NodeState
+    messages_type_1_to_tx: PSet[T1]
+    messages_type_2_to_tx: PSet[T2]
+    ...
+    messages_type_n_to_tx: PSet[TN]
+```
+
+The set $O$ of possible output messages corresponds to the union of the domains of the types `T1`, `T2`, $\ldots$, `TN`.
+
+### Input Events and Transition Function
+
+Each `@Event` annotation defines a disjoint subset of the input events and the partial transition function dealing with such a subset of the input events.
 
 Specifically, take the following piece of code.
 
@@ -221,26 +245,30 @@ def foo(a_1: T1, a_2: T2, ..., a_k: TN, node_state: NodeState) -> NewNodeStateAn
 ```
 The code above defines:
 
-- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $ipar(i) := a_1, a_2, \ldots, a_k$.
-- a subset of the transition relations $T_{\texttt{foo}} := \left\{(s_s, i, \texttt{foo}(ipar(i), s_s)\texttt{.state}, \texttt{foo}(ipar(i), s_s)\texttt{.proposeMessagesToTx} \cup \texttt{foo}(ipar(i), s_s)\texttt{.voteMessagesToTx}) : i \in I_{\texttt{foo}}, s_s \in \texttt{NodeState} \right\} \subseteq T$
-
+- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $par_\texttt{foo}(i) := a_1, a_2, \ldots, a_k$.
+- the partial transition function $t_\texttt{foo}(s, a_1, a_2, \ldots, a_k) = \texttt{foo}(a_1, a_2, \ldots, a_k, s)$.
 
 The set of input events $I$ defined by this specification corresponds to the union of the sets of events defined by each function annotated by `@Event`.
-Similarly, the transition relation $T$ defined by this specification corresponds to the union of the transition relations defined by each function annotated by `@Event`.
 
-Each `@Label` annotation defines a specific subset of the 
+The transition function is then defined as $t(s, \langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle) = t_\texttt{foo}(s,  a_1, a_2, \ldots, a_k)$ for any $\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle \in I$.
+
+### External States and View Function
+
+Each `@View` annotation defines a specific subset of the external state set and the partial external view function dealing with such a subset.
+
 Specifically, take the following piece of code.
 
 ```python
-@Label
+@View
 def bar(node_state: NodeState) -> T1:
     ...
 ```
-The code above defines a subset of the atomic propositions $P_\texttt{bar} := \{\langle \texttt{bar}, a\rangle | a \in \texttt{T1}\}$
- the labelling function $L_\texttt{bar} := \{ \}$
 
-The set of atomic propositions $P$ corresponds to the union of the subset of atomic propositions defined by each function annotated by `@Label`.
-Let $\mathcal{L}$ be the set of all functions decorated by `@Label`.
-Then, we have that the labelling function is defined as $L(s) := \{\ell(s) : \ell \in \mathcal{L} \}$.
+The code above defines
+- the subset of the external states $E_\texttt{bar} := \{\langle \texttt{bar}, a\rangle | a \in \texttt{T1}\}$
+- the partial view function $v_\texttt{bar}(s) := \langle \texttt{bar}, \texttt{bar}(s) \rangle$
 
-The set of initial states $S_0$ defined by this specification corresponds to the singleton $\{\texttt{init()}\}$.
+Let $\mathit{VF}$ be the set of all functions annotated by `@View`.
+The set of external states is then defined as $E := \dot{\prod}_{f \in \mathit{VF}} E_f$ where $\dot{\prod}$ represents the unordered product of sets.
+
+The external view function is defined as $v(s) := \{v_f(s) : f \in \mathit{VF} \}$.

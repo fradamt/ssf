@@ -209,17 +209,14 @@ A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$
 
 ### The DLTS defined by this specification
 
-#### Set of States
+#### Set of states, set of input events, set of output messages and transition function
 
-The set $S$ of possible states corresponds to the domain of the type `NodeState`.
+The set of states, set of input events, set of output messages and transition function are all dependant on the function decorator `@Event`.
 
-#### Initial State
+All functions decorated by `@Event` must have the same return type
+and such a type must be a `@dataclass(frozen=True)` with one field named `state` and all other fields of type `PSet`.
 
-The initial state $s_0$ corresponds to the value return by the function annotated with `@Init`.
-
-#### Output Messages
-
-The `@dataclass` `NewNodeStateAndMessagesToTx` has the following definition
+Let `@Event` be applied to the function `foo` below and let its return type be `NewNodeStateAndMessagesToTx`.
 
 ```python
 @dataclass(frozen=True)
@@ -229,33 +226,45 @@ class NewNodeStateAndMessagesToTx:
     messages_type_2_to_tx: PSet[T2]
     ...
     messages_type_n_to_tx: PSet[TN]
-```
 
-The set $O$ of possible output messages corresponds to the union of the domains of the types `T1`, `T2`, $\ldots$, `TN`.
-
-#### Input Events and Transition Function
-
-Each `@Event` annotation defines a disjoint subset of the input events and the partial transition function dealing with such a subset of the input events.
-
-Specifically, take the following piece of code.
-
-```python
 @Event
 def foo(a_1: T1, a_2: T2, ..., a_k: TN, node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     ...
 ```
-The code above defines:
 
-- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. In the following, for any $i \in I_{\texttt{foo}}$, let $par_\texttt{foo}(i) := a_1, a_2, \ldots, a_k$.
-- the partial transition function <br/> $t_\texttt{foo}(s, a_1, a_2, \ldots, a_k) := (\texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.state}, \bigcup_{\texttt{f} \in (\mathit{fields}(\texttt{NodeState}) \setminus \{\texttt{state})\}} \texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.f} )$<br/>where $\mathit{fields}(\texttt{NodeState}$ corresponds to the set of fields of the class `NodeState`.
+The code above provides the following definitions.
+
+##### Set of States
+
+The set $S$ of possible states corresponds to the domain of the type of the field `state` of `NewNodeStateAndMessagesToTx`, i.e. the domain of `NodeState`.
+
+##### Output Messages
+
+The set $O$ of possible output messages corresponds to the union of the domains of the types parametrizing `PSet` in all of the fields of `NewNodeStateAndMessagesToTx` except for the `state` field.
+
+Considering the code above, this corresponds to the union of the domain of they types`T1`, `T2`, $\ldots$, `TN`.
+
+##### Input Events and Transition Function
+
+Each `@Event` annotation specifically defines a disjoint subset of the input events and the partial transition function dealing with such a subset of the input events.
+
+A function like `foo` in the code above defines:
+
+- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. 
+<!-- In the following, for any $i \in I_{\texttt{foo}}$, let $par_\texttt{foo}(i) := a_1, a_2, \ldots, a_k$. -->
+- the partial transition function <br/> $t_\texttt{foo}(s, a_1, a_2, \ldots, a_k) := (\texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.state}, \bigcup_{\texttt{f} \in (\mathit{fields}(\texttt{NodeState}) \setminus \{\texttt{state}\})} \texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.f} )$<br/>where $\mathit{fields}(\texttt{NodeState})$ corresponds to the set of fields of the class `NodeState`.
 
 The set of input events $I$ defined by this specification corresponds to the union of the sets of events defined by each function annotated by `@Event`.
 
-The transition function is then defined as $t(s, \langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle) = t_\texttt{foo}(s,  a_1, a_2, \ldots, a_k)$ where $\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle \in I$.
+The transition function is then defined as $t(s, i) = t_\texttt{foo}(s,  a_1, a_2, \ldots, a_k)$ if $i = \langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle$.
+
+#### Initial State
+
+The initial state $s_0$ corresponds to the value return by the function annotated with `@Init`.
 
 #### External States and View Function
 
-Each `@View` annotation defines a specific subset of the external state set and the partial external view function dealing with such a subset.
+Each function decorated by `@View` defines a specific subset of the external state set and the partial external view function dealing with such a subset.
 
 Specifically, take the following piece of code.
 
@@ -277,7 +286,7 @@ The external view function is defined as $v(s) := \{v_f(s) : f \in \mathit{VF} \
 
 ### Specification of Mappings between Low-Level and High-Level specifications
 
-The decorators `@MapState`, `@MapEvent` and `@MapOutputMessage` are used to define the mapping $M=(m_I, m_O, m_S)$ between a lower-level spec and a higher-level spec as detailed below.
+The decorators `@MapState`, `@MapEvent` and `@MapOutputMessage` are used to define the mapping $M=(m_I, m_O, m_S)$ between a lower-level spec and a higher-level specification as detailed below.
 
 #### States
 

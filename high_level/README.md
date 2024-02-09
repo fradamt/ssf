@@ -117,7 +117,7 @@ By translating the Python spec to a formal language that supports mechanized for
 ## General Rules Used in Writing this High-Level Specification
 
 1. Add a field to `NodeState` only if it cannot be computed from the others.
-2. Use fixed-size types only for message fields. For any other integer type, use `int`. Fixed-size types (except for messages) are for lower-level implementations.
+2. Use fixed-size types only for message fields. For any other integer type, use `int`. Fixed-size types (except for messages) are for lower-level specifications.
 
 ## Formal Semantics
 

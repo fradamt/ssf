@@ -1,6 +1,5 @@
 # Formal Semantics [Do not read. Still under review!]
 
-
 The behavior of a node is specified by a Deterministic Labelled Transition System (DLTS) $(S, s_0, I, O, t, E, v)$ where:
 
 - $S$ is the set, possibly infinite, of states that the node can be in
@@ -53,10 +52,7 @@ Given a mapping $M=(m_I, m_O, m_S)$ between a DLTS $\mathcal{D}^L = (S^L, s_0^L,
 
 According to the definition above, if a DLTS $\mathcal{D}^L$ implements a DLTS $\mathcal{D}^H$ according to the mapping $M$, then $\mathsf{EB}^M(\mathcal{D}^L) = \mathsf{EB}(\mathcal{D}^H)$.
 
-
 <!-- Let $v^{L \to H}:S^L \to E^H$ be defined as $v^{L \to H}(s^L) = v^H(m_S(s^L))$.
-
-
 
 Let $\mathcal{I}^L$
 
@@ -107,7 +103,7 @@ Each `@Event` annotation specifically defines a disjoint subset of the input eve
 
 A function like `foo` in the code above defines:
 
-- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$. 
+- a subset of the input events $I_{\texttt{foo}} := \{\langle \texttt{foo}, a_1, a_2, \ldots, a_k \rangle : (a_1, a_2, \ldots, a_k) \in \texttt{T1} \times \texttt{T2} \times \cdots \times \texttt{TN} \} \subseteq I$.
 <!-- In the following, for any $i \in I_{\texttt{foo}}$, let $par_\texttt{foo}(i) := a_1, a_2, \ldots, a_k$. -->
 - the partial transition function <br/> $t_\texttt{foo}(s, a_1, a_2, \ldots, a_k) := (\texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.state}, \bigcup_{\texttt{f} \in (\mathit{fields}(\texttt{NodeState}) \setminus \{\texttt{state}\})} \texttt{foo}(a_1, a_2, \ldots, a_k, s)\texttt{.f} )$<br/>where $\mathit{fields}(\texttt{NodeState})$ corresponds to the set of fields of the class `NodeState`.
 

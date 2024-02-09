@@ -172,7 +172,11 @@ In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, 
 1. $\forall s_s^L, s_d^L \in S^L, i^L \in I^L, M_O^L \subseteq O^L: t^L(s_s^L, i^L) = (s_d^L, M_O^L) \implies t^H(m_S(s_s^L), m_I(i^L)) = (m_S(s_d^L), m_O(M_O^L))$.
 2. $\forall e^L \in E^L : |\{v^H(m_S(s^L)) : s^L \in S^L \land v^L(s^L) = e^L\}| = 1$
 
-Given condition 2 above, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = v^H(m_S(s^L))$ for any $s^L \in {v^L}^{-1}(e^L)$.
+Intuitively, condition 1 states that the transition function $t^L$ relates source states, input events, destination states and output events like transition function $t^H$ does, modulo the mapping.
+Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, this implies that $t^L$ and $t^H$ are equivalent, modulo the mapping.
+
+Condition 2 ensures that external states of $\mathcal{D}^L$ can be mapped to external states of $\mathcal{D}^H$.
+Specifically, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = v^H(m_S(s^L))$ for any $s^L \in {v^L}^{-1}(e^L)$.
 Hence, $\forall s^L \in S^L : v^H(m_S(s^L)) = M_E(v^L(s^L))$.
 
 

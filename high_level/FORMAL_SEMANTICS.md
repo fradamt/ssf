@@ -14,10 +14,10 @@ The behavior of a node is specified by a Deterministic Labelled Transition Syste
 A node starts in state $s_0$ and then it progresses as follows:
 From any state $s_s$ on input event $i \in I$ with $t(s_s, i) = (s_d, M_O)$, it atomically transitions to state $s_d$ and outputs the finite set of messages $M_O$.
 
-An execution path $\pi$ of a DLTS $\mathcal{D} = (S, s_0, I, O, t, E, v)$ is an infinite alternating sequence of states, input events and output messages $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \cdots  \rangle$ such that $\forall i \geq 0:  (s_{i+1}, o_i) = t(s_i, i_i)$.
+An execution path $\pi$ of a DLTS $\mathcal{D} = (S, s_0, I, O, t, E, v)$ is an infinite alternating sequence of states, input events and output messages $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \cdots  \rangle$ such that $\forall j \geq 0:  (s_{j+1}, o_j) = t(s_j, i_j)$.
+Let $\Pi_\mathcal{{D}}$ be the set of all possible paths of the DLTS $\mathcal{D}$.
 
 The external behavior $\mathsf{EB}(\pi)$ of an execution path $\pi = \langle s_0, i_0, o_0, s_1, i_1, o_1, s_2, \ldots  \rangle$ corresponds to the execution path $\pi$ with each state mapped to its corresponding externally visible state, i.e., $\mathsf{EB}(\pi) =  \langle v(s_0), i_0, o_0, v(s_1), i_1, o_1, v(s_2), \ldots \rangle$.
-Let $\Pi_\mathcal{{D}}$ be the set of all possible paths of the DLTS $\mathcal{D}$.
 Then the external behavior specified by $\mathcal{D}$ is $\mathsf{EB}(\mathcal{D}) := \bigcup_{\pi \in \Pi_\mathcal{D}} \mathsf{EB}(\pi)$.
 
 A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ is a triple $M = (m_I, m_O, m_S)$ where $m_I: I^L \to I^H$, $m_O: O^L \to O^H$ and $m_S: S^L \to S^H$ are all surjective functions.
@@ -38,14 +38,13 @@ Condition 2 ensures that external states of $\mathcal{D}^L$ can be mapped to ext
 Specifically, it is possible to define $M_E: E^L \to E^H$ as $M_E(e^L) = v^H(m_S(s^L))$ for any $s^L \in {v^L}^{-1}(e^L)$.
 Hence, $\forall s^L \in S^L : v^H(m_S(s^L)) = M_E(v^L(s^L))$.
 
-
-Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, the above essentially defines the [bisimulation](https://en.wikipedia.org/wiki/Bisimulation) relation $R$ between $\mathcal{D}^L$ and $\mathcal{D}^H$ as
+Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, the above essentially defines the following [bisimulation](https://en.wikipedia.org/wiki/Bisimulation) relation $R=(R_I, R_O)$ between $\mathcal{D}^L$ and $\mathcal{D}^H$:
 
 $R_I = \{ (s^L, i^L, s^H, i^H) \in S^L \times I^L  \times S^H \times I^H  : s^H=m_S(s^L) \land i^H = m_I(i^L)\}$
 
 $R_O = \{ (s^L, o^L, s^H, o^H) \in S^L \times O^L \times S^H \times O^H : s^H=m_S(s^L)  \land o^H=m_O(o^L)\}$
 
-Hence we have that
+Such a relation ensures the following bisumulation conditions:
 <!-- - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, (s_d^L, o^L, s_d^H, o^H) \in R_O: t^L(s_s^L, i^L) = (s_d^L, o^L) \implies t^H(s_s^H, i^H) = (s_d^H, o^H)$ -->
 - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^L \in S^L, o^L \in O^L: t^L(s_s^L, i^L) = (s_d^L, o^L) \implies (\exists s_d^H \in S^H, o^H \in O^H: t^H(s_s^H, i^H) = (s_d^H, o^H) \land (s_d^L, o^L, s_d^H, o^H) \in R_O)$
 - $\forall (s_s^L, i^L, s_s^H, i^H) \in R_I, s_d^H \in S^H, o^H \in O^H: t^H(s_s^H, i^H) = (s_d^H, o^H) \implies (\exists s_d^L \in S^L, o^L \in O^L: t^L(s_s^L, i^L) = (s_d^L, o^L) \land (s_d^H, o^H, s_d^L, o^L) \in R_O)$
@@ -168,7 +167,7 @@ def low_event_name(a_1: LT1, a_2: LT2, ..., a_k: LTN) -> tuple[str, HT1, HT2, ..
     ...
 ```
 
-The set of all functions decorated via `@MapEvent` defines the input event mapping function as $m_I(\langle \texttt{low\_event\_name}, a_1, a_2, \ldots, a_k \rangle) := \texttt{low\_event\_name}(a_1, a_2, \ldots, a_k)$.
+The set of all functions decorated via `@MapEvent` defines the input event mapping function as<br/>$m_I(i) := \texttt{low\_event\_name}(a_1, a_2, \ldots, a_k)$ if $i = \langle \texttt{low\_event\_name}, a_1, a_2, \ldots, a_k \rangle$.
 
 ### Output Events
 

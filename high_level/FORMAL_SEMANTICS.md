@@ -1,4 +1,4 @@
-# Formal Semantics [Do not read. Still under review!]
+# Formal Semantics
 
 The behavior of a node is specified by a Deterministic Labelled Transition System (DLTS) $(S, s_0, I, O, t, E, v)$ where:
 

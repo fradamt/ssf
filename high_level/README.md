@@ -101,14 +101,13 @@ def get_parent(block: Block, node_state: NodeState) -> Block:
 
 By translating the Python spec to a formal language that supports mechanized formal verification, it will be possible to have a mechanical formal proof that every time that `get_parent(block, node_state)` is called, `has_parent(block, node_state) == True`.
 
-
 ## General Rules Used in Writing the Python Code
 
 ### Hard Rules
 
 1. Use only immutable data structures. This is very helpful for formal verification purposes as one does not need to be concerned with the problem of [aliasing](https://en.wikipedia.org/wiki/Aliasing_(computing)).
    1. For sets, lists and maps use the types `PSet`, `PVector` and`PMap`, respectively, from the [`pyrsistent`](https://pypi.org/project/pyrsistent/) library.
-   2. For composite data structures that never need to be manipulated during any function, use `@dataclass(frozen=True)`. 
+   2. For composite data structures that never need to be manipulated during any function, use `@dataclass(frozen=True)`.
    3. For the composite data structures that need to be manipulated during the execution of some of the functions, base them off the `PRecord` class from the [`pyrsistent`](https://pypi.org/project/pyrsistent/) library. This is to use `PRecord`s only when strictly necessary because, as of today, MyPy cannot typecheck `PRecord`s, but it can typecheck `@dataclass`es.
 
 2. Reduce the usage of Pythonic code as much as possible. This is to have a spec with very simple semantics and therefore reduce the risk of possible misinterpretations. As a consequence of this principle, the following rules have been followed:
@@ -119,7 +118,6 @@ By translating the Python spec to a formal language that supports mechanized for
        4. call to the `set` method of `PRecord`s
        5. lambdas
     2. Relegate all of the code that needs features of the Python language outside of those listed above to the file  `pythonic_code_generic.py` except for data structure definitions which are to be placed in the file `data_structures.py`.
-
 
 ### Soft Rules
 

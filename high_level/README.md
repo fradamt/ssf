@@ -4,9 +4,9 @@ This folder contains an initial high-level specification of the 3SF protocol.
 
 ## Status
 
-The current specification is just a start and is therefore is still incomplete.
+The current specification is just a start and therefore is still incomplete.
 
-A list of TODOs and Known Issues are detailed in the file [TODO_and_KNOWN_ISSUES.md](TODO_and_KNOWN_ISSUES.md).
+A list of TODOs and Known Issues is detailed in the file [TODO_and_KNOWN_ISSUES.md](TODO_and_KNOWN_ISSUES.md).
 
 ## Intent
 
@@ -24,6 +24,17 @@ Note that it is admitted for a specification $S1$ implementing a specification $
 In this case, intuitively, a specification $S1$ implements a specification $S2$ if any external behavior specified by specification $S1$, _with the portion of data added to each message by_ $S1$ _being removed_, is also an external behavior of specification $S2$.
 
 A more formal definition is provided below.
+
+## Quick Comparison to the current Ethereum specification
+
+This section provides a quick overview of some of the most significant differences between this specification and the current [Ethereum specification](https://github.com/ethereum/consensus-specs).
+
+1. This specification also encodes the expected behavior of honest nodes which in the Ethereum specification is mainly described through natural language in the Honest Validator Guide. By doing so, this specification eliminates possible ambiguities inherent to natural language. Additionally, it provides a more straightforward path to formal verification as formal verification of many properties requires unambiguous coding of the expected behavior of honest nodes.
+2. `NodeState` in this specification is the equivalent of `Store` in the Ethereum specification.
+3. As anticipated above and detailed below, this specification is not concerned with computational efficiency.
+4. Redundant information in `NodeState` is reduced as much as possible, that is, the value of any field in `NodeState` should not be derivable from the value of the other fields. This strategy is expected to help ensure a correct design, as it reduces the risk of discrepancies between the protocol designers' intended relationships among fields and their actual interrelations. Additionally, formal verification processes, which often require determining and proving the relationships between fields, are facilitated by this approach.
+5. As a consequence of the above, there is no concept of block state in this specification.
+6. As mentioned in other parts of this document, computational efficiency can be addressed, if required, via lower-level specifications.
 
 ## How to Read the Specification
 

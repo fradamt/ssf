@@ -163,7 +163,7 @@ def low_event_name(a_1: LT1, a_2: LT2, ..., a_k: LTN) -> tuple[str, HT1, HT2, ..
     ...
 ```
 
-The set of all functions decorated via `@MapEvent` defines the input event mapping function as $m_I(i) := \texttt{low\_event\_name}(a_1, a_2, \ldots, a_k)$ if $i = \langle \texttt{low\_event\_name}, a_1, a_2, \ldots, a_k \rangle$.
+The set of all functions decorated via `@MapEvent` defines the input event mapping function as $m_I(i) := \texttt{loweventname}(a_1, a_2, \ldots, a_k)$ if $i = \langle \texttt{loweventname}, a_1, a_2, \ldots, a_k \rangle$.
 
 ### Output Events
 

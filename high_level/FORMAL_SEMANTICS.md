@@ -20,7 +20,7 @@ The external behavior $\mathsf{EB}(\pi)$ of an execution path $\pi = \langle s_0
 Then the external behavior specified by $\mathcal{D}$ is $\mathsf{EB}(\mathcal{D}) := \bigcup_{\pi \in \Pi_\mathcal{D}} \mathsf{EB}(\pi)$.
 
 A mapping between a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ and a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ is a triple $M = (m_I, m_O, m_S)$ where $m_I: I^L \to I^H$, $m_O: O^L \to O^H$ and $m_S: S^L \to S^H$ are all surjective functions.
-For any $M_O \subseteq O^L$, $m_O(M_O)$ is defined as $m_O(M_O) := \{m_O(m) : m \in M_O \}$.
+For any $M_O \subseteq O^L$, $m_O(M_O)$ is defined as $m_O(M_O) := \\{ m_O(m) : m \in M_O \\}$.
 
 In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, O^L, t^L, E^L, v^L)$ _implements_ a DLTS $\mathcal{D}^H = (S^H, s_0^H, I^H, O^H, t^H, E^H, v^H)$ according to the mapping $M=(m_I, m_O, m_S)$ iff:
 
@@ -28,7 +28,7 @@ In the context of this specification, a DLTS $\mathcal{D}^L = (S^L, s_0^L, I^L, 
 
 1. $m_S(s_0^L) = s_0^H$
 2. $\forall s_s^L, s_d^L \in S^L, i^L \in I^L, M_O^L \subseteq O^L: t^L(s_s^L, i^L) = (s_d^L, M_O^L) \implies t^H(m_S(s_s^L), m_I(i^L)) = (m_S(s_d^L), m_O(M_O^L))$.
-3. $\forall e^L \in E^L : |\{v^H(m_S(s^L)) : s^L \in S^L \land v^L(s^L) = e^L\}| = 1$
+3. $\forall e^L \in E^L : | \\{ v^H(m_S(s^L)) : s^L \in S^L \land v^L(s^L) = e^L \\} | = 1$
 
 Intuitively, condition 1 states that the transition function $t^L$ relates source states, input events, destination states and output events like transition function $t^H$ does, modulo the mapping.
 Given the requirements on $t^L$ being a total function and the surjectivity of each function in the mapping $M$, this implies that $t^L$ and $t^H$ are equivalent, modulo the mapping.

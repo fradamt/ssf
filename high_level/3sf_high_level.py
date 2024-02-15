@@ -156,7 +156,11 @@ def on_merge(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
 @Event
 def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     node_state = node_state.set(
-        buffer_blocks=node_state.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
+        buffer_blocks=pmap_set(
+            node_state.buffer_blocks,
+            block_hash(propose.message.block), 
+            propose.message.block)
+        )
 
     if node_state.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         node_state = node_state.set(
@@ -176,7 +180,11 @@ def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) ->
 def on_block_received(block: Block, node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     return NewNodeStateAndMessagesToTx(
         state=node_state.set(
-            buffer_blocks=node_state.buffer_blocks.set(block_hash(block), block)),
+            buffer_blocks=pmap_set(
+                node_state.buffer_blocks,
+                block_hash(block), 
+                block)
+            ),
         proposeMessagesToTx=pset_get_empty(),
         voteMessagesToTx=pset_get_empty()
     )

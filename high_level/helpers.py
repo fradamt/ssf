@@ -482,7 +482,7 @@ def execute_view_merge(node_state: NodeState) -> NodeState:
         get_votes_included_in_blocks(get_all_blocks(node_state)))
     )
     node_state = node_state.set(buffer_vote=pset_get_empty())
-    node_state = node_state.set(buffer_blocks=pset_get_empty())
+    node_state = node_state.set(buffer_blocks=pmap_get_empty())
     return node_state
 
 

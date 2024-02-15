@@ -155,7 +155,7 @@ def on_merge(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
 
 @Event
 def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) -> NewNodeStateAndMessagesToTx:
-    node_state.set(
+    node_state = node_state.set(
         buffer_blocks=node_state.buffer_blocks.set(block_hash(propose.message.block), propose.message.block))
 
     if node_state.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?

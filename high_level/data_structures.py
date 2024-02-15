@@ -90,8 +90,8 @@ class NodeState(PRecord):
     current_slot: int = field(type=int)
     current_phase: NodePhase = field(type=NodePhase)
     view_blocks: PMap[Hash, Block] = field()  # Using field(type=dict[Hash,Block]) raises a max stack depth rec. error in execution. Same for sets below
-    view_vote: PSet[SignedVoteMessage] = field()
-    buffer_vote: PSet[SignedVoteMessage] = field()
+    view_votes: PSet[SignedVoteMessage] = field()
+    buffer_votes: PSet[SignedVoteMessage] = field()
     buffer_blocks: PMap[Hash, Block] = field()
     s_cand: PSet[Block] = field()
     chava: Block = field()

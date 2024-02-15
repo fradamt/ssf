@@ -141,7 +141,7 @@ def is_justified_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bo
 
         validatorBalances = get_validator_set_for_slot(get_block_from_hash(checkpoint.block_hash, node_state), checkpoint.block_slot, node_state)
 
-        FFG_support_weight = validator_set_weight(get_validators_in_FFG_support_of_checkpoint_justification(node_state.view_vote, checkpoint, node_state), validatorBalances)
+        FFG_support_weight = validator_set_weight(get_validators_in_FFG_support_of_checkpoint_justification(node_state.view_votes, checkpoint, node_state), validatorBalances)
         tot_validator_set_weight = validator_set_weight(pmap_keys(validatorBalances), validatorBalances)
 
         return FFG_support_weight * 3 >= tot_validator_set_weight * 2
@@ -153,7 +153,7 @@ def filter_out_non_justified_checkpoint(checkpoints: PSet[Checkpoint], node_stat
 
 def get_justified_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
     return pset_add(
-        filter_out_non_justified_checkpoint(get_set_FFG_targets(node_state.view_vote), node_state),
+        filter_out_non_justified_checkpoint(get_set_FFG_targets(node_state.view_votes), node_state),
         genesis_checkpoint(node_state)
     )
 
@@ -177,7 +177,7 @@ def is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote: SignedVoteMessage, ch
 
 
 def filter_out_FFG_vote_not_linking_to_a_checkpoint_in_next_slot(checkpoint: Checkpoint, node_state: NodeState) -> PSet[SignedVoteMessage]:
-    return pset_filter(lambda vote: is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote, checkpoint, node_state), node_state.view_vote)
+    return pset_filter(lambda vote: is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote, checkpoint, node_state), node_state.view_votes)
 
 
 def get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot(checkpoint: Checkpoint, node_state) -> PSet[NodeIdentity]:
@@ -204,7 +204,7 @@ def filter_out_non_finalized_checkpoint(checkpoints: PSet[Checkpoint], node_stat
 
 def get_finalized_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
     return pset_add(
-        filter_out_non_finalized_checkpoint(get_set_FFG_targets(node_state.view_vote), node_state),
+        filter_out_non_finalized_checkpoint(get_set_FFG_targets(node_state.view_votes), node_state),
         genesis_checkpoint(node_state)
     )
 
@@ -285,7 +285,7 @@ def filter_out_non_LMD_GHOST_votes(votes: PSet[SignedVoteMessage]) -> PSet[Signe
 
 
 def is_equivocating_GHOST_vote(vote: SignedVoteMessage, node_state: NodeState) -> bool:
-    for vote_check in node_state.view_vote:
+    for vote_check in node_state.view_votes:
         if (
             vote_check.message.slot == vote.message.slot and
             vote_check.sender == vote.sender and
@@ -355,7 +355,7 @@ def votes_to_include_in_proposed_block(node_state: NodeState) -> PSet[SignedVote
     """
     head_block = get_head(node_state)
     votes_for_blocks_in_canonical_chain = filter_out_GHOST_votes_not_for_blocks_in_blockchain(
-        filter_out_invalid_votes(node_state.view_vote, node_state),
+        filter_out_invalid_votes(node_state.view_votes, node_state),
         head_block,
         node_state
     )
@@ -387,7 +387,7 @@ def get_votes_to_include_in_propose_message_view(node_state: NodeState) -> PVect
             filter_out_GHOST_votes_non_descendant_of_block(
                 get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
                 filter_out_expired_GHOST_votes(
-                    filter_out_invalid_votes(node_state.view_vote, node_state),
+                    filter_out_invalid_votes(node_state.view_votes, node_state),
                     node_state
                 ),
                 node_state
@@ -447,7 +447,7 @@ def get_head(node_state: NodeState) -> Block:
             filter_out_expired_GHOST_votes(
                 filter_out_GHOST_equivocating_votes(
                     filter_out_invalid_votes(
-                        node_state.view_vote,
+                        node_state.view_votes,
                         node_state
                     ),
                     node_state
@@ -476,8 +476,8 @@ def execute_view_merge(node_state: NodeState) -> NodeState:
     node_state = node_state.set(blocks=pmap_merge(node_state.view_blocks, node_state.buffer_blocks))
     node_state = node_state.set(view_vote=pset_merge(
         pset_merge(
-            node_state.view_vote,
-            node_state.buffer_vote
+            node_state.view_votes,
+            node_state.buffer_votes
         ),
         get_votes_included_in_blocks(get_all_blocks(node_state)))
     )
@@ -507,7 +507,7 @@ def is_confirmed(block: Block, node_state: NodeState) -> bool:
 
     return (
         is_ancestor_descendant_relationship(block, head_block, node_state) and
-        get_GHOST_weight(block, node_state.view_vote, node_state, validatorBalances) * 3 >= tot_validator_set_weight * 2
+        get_GHOST_weight(block, node_state.view_votes, node_state, validatorBalances) * 3 >= tot_validator_set_weight * 2
     )
 
 

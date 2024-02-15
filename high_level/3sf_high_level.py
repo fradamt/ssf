@@ -161,7 +161,7 @@ def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) ->
     if node_state.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         node_state = node_state.set(
             view_vote=pset_merge(
-                node_state.view_vote,
+                node_state.view_votes,
                 from_pvector_to_pset(propose.message.proposer_view))
         )
 
@@ -187,7 +187,7 @@ def on_vote_received(vote: SignedVoteMessage, node_state: NodeState) -> NewNodeS
     return NewNodeStateAndMessagesToTx(
         state=node_state.set(
             buffer_vote=pset_add(
-                node_state.buffer_vote,
+                node_state.buffer_votes,
                 vote
             )
         ),

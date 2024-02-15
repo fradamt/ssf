@@ -45,6 +45,7 @@ This section provides a quick overview of some of the most significant differenc
 - `data_structures.py` contains all the data structure definitions.
 - `stubs.pyi` contains functions that have not yet been defined.
 - `formal_verification_annotations.py` includes the definition of all the annotations used to aid the formal verification of this specification.
+- `pythonic_code_generic.py` is reserved for code heavily reliant on Python syntax and semantics. More on this [below](#hard-rules).
 
 ### Event Handlers
 

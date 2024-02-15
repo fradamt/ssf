@@ -32,12 +32,12 @@ def genesis_checkpoint(node_state: NodeState) -> Checkpoint:
 
 
 def has_block_hash(block_hash: Hash, node_state: NodeState) -> bool:
-    return pmap_has(node_state.blocks, block_hash)
+    return pmap_has(node_state.view_blocks, block_hash)
 
 
 def get_block_from_hash(block_hash: Hash, node_state: NodeState) -> Block:
     Requires(has_block_hash(block_hash, node_state))
-    return pmap_get(node_state.blocks, block_hash)
+    return pmap_get(node_state.view_blocks, block_hash)
 
 
 def has_parent(block: Block, node_state: NodeState) -> bool:
@@ -50,7 +50,7 @@ def get_parent(block: Block, node_state: NodeState) -> Block:
 
 
 def get_all_blocks(node_state: NodeState) -> PSet[Block]:
-    return pmap_values(node_state.blocks)
+    return pmap_values(node_state.view_blocks)
 
 
 def is_complete_chain(block: Block, node_state: NodeState) -> bool:
@@ -473,7 +473,7 @@ def get_head(node_state: NodeState) -> Block:
 
 
 def execute_view_merge(node_state: NodeState) -> NodeState:
-    node_state = node_state.set(blocks=pmap_merge(node_state.blocks, node_state.buffer_blocks))
+    node_state = node_state.set(blocks=pmap_merge(node_state.view_blocks, node_state.buffer_blocks))
     node_state = node_state.set(view_vote=pset_merge(
         pset_merge(
             node_state.view_vote,

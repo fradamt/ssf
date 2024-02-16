@@ -53,6 +53,10 @@ def get_all_blocks(node_state: NodeState) -> PSet[Block]:
     return pmap_values(node_state.view_blocks)
 
 
+def is_validator(node: NodeIdentity, validatorBalances: ValidatorBalances) -> bool:
+    return pmap_has(validatorBalances, node)
+
+
 def is_complete_chain(block: Block, node_state: NodeState) -> bool:
     if block == node_state.configuration.genesis:
         return True
@@ -305,7 +309,9 @@ def valid_vote(vote: SignedVoteMessage, node_state: NodeState) -> bool:
         verify_vote_signature(vote) and
         has_block_hash(vote.message.head_hash, node_state) and
         is_complete_chain(get_block_from_hash(vote.message.head_hash, node_state), node_state) and
-        pmap_has(get_validator_set_for_slot(get_block_from_hash(vote.message.head_hash, node_state), vote.message.slot, node_state), vote.sender) and
+        is_validator(
+            vote.sender,
+            get_validator_set_for_slot(get_block_from_hash(vote.message.head_hash, node_state), vote.message.slot, node_state)) and
         is_ancestor_descendant_relationship(
             get_block_from_hash(vote.message.ffg_source.block_hash, node_state),
             get_block_from_hash(vote.message.ffg_target.block_hash, node_state),
@@ -406,7 +412,7 @@ def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], node_state: N
                         block,
                         get_block_from_hash(vote.message.head_hash, node_state),
                         node_state) and
-                    pmap_has(validatorBalances, vote.sender)
+                    is_validator(vote.sender, validatorBalances)
                 ,
                 votes
             )

@@ -357,7 +357,8 @@ def votes_to_include_in_proposed_block(node_state: NodeState) -> PSet[SignedVote
         node_state
     )
 
-    return votes_for_blocks_in_canonical_chain.difference(
+    return pset_difference(
+        votes_for_blocks_in_canonical_chain,
         get_votes_included_in_blockchain(head_block, node_state)
     )
 

@@ -350,6 +350,7 @@ def get_votes_included_in_blocks(blocks: PSet[Block]) -> PSet[SignedVoteMessage]
         )
     )
 
+
 def votes_to_include_in_proposed_block(node_state: NodeState) -> PSet[SignedVoteMessage]:
     """
     The votes to include in a proposed block are all those with a GHOST vote for a block in the chain
@@ -412,8 +413,7 @@ def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], node_state: N
                         block,
                         get_block_from_hash(vote.message.head_hash, node_state),
                         node_state) and
-                    is_validator(vote.sender, validatorBalances)
-                ,
+                    is_validator(vote.sender, validatorBalances),
                 votes
             )
         )

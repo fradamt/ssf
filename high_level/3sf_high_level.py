@@ -85,8 +85,8 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
         ),
         get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state)
     )
-    
-    bcand = pset_max(s_cand, lambda b:b.slot)
+
+    bcand = pset_max(s_cand, lambda b: b.slot)
 
     k_deep_block = get_block_k_deep(ch, node_state.configuration.k, node_state)
 
@@ -100,7 +100,7 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
                     pset_get_singleton(bcand),
                     pset_get_singleton(k_deep_block)
                 ),
-                lambda b:b.slot
+                lambda b: b.slot
             )
         )
 
@@ -154,9 +154,9 @@ def on_received_propose(propose: SignedProposeMessage, node_state: NodeState) ->
     node_state = node_state.set(
         buffer_blocks=pmap_set(
             node_state.buffer_blocks,
-            block_hash(propose.message.block), 
+            block_hash(propose.message.block),
             propose.message.block)
-        )
+    )
 
     if node_state.current_phase == NodePhase.PROPOSE:  # Is this Ok or do we need to also include 4\Delta t + \Delta ?
         node_state = node_state.set(
@@ -178,9 +178,9 @@ def on_block_received(block: Block, node_state: NodeState) -> NewNodeStateAndMes
         state=node_state.set(
             buffer_blocks=pmap_set(
                 node_state.buffer_blocks,
-                block_hash(block), 
+                block_hash(block),
                 block)
-            ),
+        ),
         proposeMessagesToTx=pset_get_empty(),
         voteMessagesToTx=pset_get_empty()
     )

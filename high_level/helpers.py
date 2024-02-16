@@ -282,15 +282,15 @@ def filter_out_non_LMD_GHOST_votes(votes: PSet[SignedVoteMessage]) -> PSet[Signe
 
 
 def is_equivocating_GHOST_vote(vote: SignedVoteMessage, node_state: NodeState) -> bool:
-    for vote_check in node_state.view_votes:
-        if (
-            vote_check.message.slot == vote.message.slot and
-            vote_check.sender == vote.sender and
-            vote_check.message.head_hash != vote.message.head_hash
-        ):
-            return True
-
-    return False
+    return not pset_is_empty(
+        pset_filter(
+            lambda vote_check:
+                vote_check.message.slot == vote.message.slot and
+                vote_check.sender == vote.sender and
+                vote_check.message.head_hash != vote.message.head_hash,
+            node_state.view_votes
+        )
+    )
 
 
 def filter_out_GHOST_equivocating_votes(votes: PSet[SignedVoteMessage], node_state: NodeState) -> PSet[SignedVoteMessage]:
@@ -337,13 +337,12 @@ def get_votes_included_in_blockchain(block: Block, node_state: NodeState) -> PSe
 
 
 def get_votes_included_in_blocks(blocks: PSet[Block]) -> PSet[SignedVoteMessage]:
-    votes: PSet[SignedVoteMessage] = pset_get_empty()
-
-    for block in blocks:
-        votes = pset_merge(votes, block.votes)
-
-    return votes
-
+    return pset_merge_flatten(
+        pset_map(
+            lambda b: b.votes,
+            blocks
+        )
+    )
 
 def votes_to_include_in_proposed_block(node_state: NodeState) -> PSet[SignedVoteMessage]:
     """
@@ -397,30 +396,29 @@ def get_votes_to_include_in_propose_message_view(node_state: NodeState) -> PVect
 
 
 def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], node_state: NodeState, validatorBalances: ValidatorBalances) -> int:
-    weight = 0
-
-    for vote in votes:
-        if (
-            has_block_hash(vote.message.head_hash, node_state) and  # Perhaps not needed
-            is_ancestor_descendant_relationship(
-                block,
-                get_block_from_hash(vote.message.head_hash, node_state),
-                node_state) and
-            vote.sender in validatorBalances
-        ):
-            weight = weight + validatorBalances[vote.sender]
-
-    return weight
+    return pset_sum(
+        pset_map(
+            lambda vote: validatorBalances[vote.sender],
+            pset_filter(
+                lambda vote:
+                    has_block_hash(vote.message.head_hash, node_state) and  # Perhaps not needed
+                    is_ancestor_descendant_relationship(
+                        block,
+                        get_block_from_hash(vote.message.head_hash, node_state),
+                        node_state) and
+                    pmap_has(validatorBalances, vote.sender)
+                ,
+                votes
+            )
+        )
+    )
 
 
 def get_children(block: Block, node_state: NodeState) -> PSet[Block]:
-    children: PSet[Block] = pset_get_empty()
-
-    for b in get_all_blocks(node_state):
-        if b.parent_hash == block_hash(block):
-            children = pset_add(children, b)
-
-    return children
+    return pset_filter(
+        lambda b: b.parent_hash == block_hash(block),
+        get_all_blocks(node_state)
+    )
 
 
 def find_head_from(block: Block, votes: PSet[SignedVoteMessage], node_state: NodeState, validatorBalances: ValidatorBalances) -> Block:

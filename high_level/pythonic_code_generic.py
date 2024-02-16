@@ -2,6 +2,7 @@ from typing import TypeVar
 
 from pyrsistent import PSet, PMap, PVector, pset, pmap, pvector
 from formal_verification_annotations import *
+from functools import reduce
 
 T1 = TypeVar('T1')
 T2 = TypeVar('T2')
@@ -25,6 +26,13 @@ def pset_get_empty() -> PSet[T1]:
 
 def pset_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
     return a.union(b)
+
+
+def pset_merge_flatten(s: PSet[PSet[T1]]) -> PSet[T1]:
+    return reduce(
+        lambda a,b: a.union(b),
+        pset()
+    )
 
 
 def pset_intersection(s1: PSet[T1], s2: PSet[T1]) -> PSet[T1]:
@@ -62,6 +70,9 @@ def pset_max(s: PSet[T1], a: Callable[[T1], int]) -> T1:
 
 def pset_sum(s:PSet[int]) -> int:
     return sum(s)
+
+def pset_is_empty(s: PSet[T1]) -> bool:
+    return len(s) == 0
 
 def from_pvector_to_pset(v: PVector[T1]) -> PSet[T1]:
     return pset(v)

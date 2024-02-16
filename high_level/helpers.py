@@ -90,12 +90,15 @@ def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, node
 
 
 def validator_set_weight(validators: PSet[NodeIdentity], validatorBalances: ValidatorBalances) -> int:
-    total_weight = 0
-    for validator in validators:
-        if validator in validatorBalances:
-            total_weight = total_weight + validatorBalances[validator]
-
-    return total_weight
+    return pset_sum(
+        pset_map(
+            lambda v: pmap_get(validatorBalances, v),
+            pset_intersection(
+                pmap_keys(validatorBalances),
+                validators
+            )
+        )
+    )
 
 
 def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
@@ -159,13 +162,10 @@ def get_justified_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
 
 
 def get_highest_justified_checkpoint(node_state: NodeState) -> Checkpoint:
-    highest_justified_checkpoint = genesis_checkpoint(node_state)
-
-    for checkpoint in get_justified_checkpoints(node_state):
-        if checkpoint.chkp_slot > highest_justified_checkpoint.chkp_slot:
-            highest_justified_checkpoint = checkpoint
-
-    return highest_justified_checkpoint
+    return pset_max(
+        get_justified_checkpoints(node_state),
+        lambda c: c.chkp_slot
+    )
 
 
 def is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote: SignedVoteMessage, checkpoint: Checkpoint, node_state: NodeState) -> bool:
@@ -210,13 +210,10 @@ def get_finalized_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
 
 
 def get_highest_finalized_checkpoint(node_state: NodeState) -> Checkpoint:
-    highest_finalized_checkpoint = genesis_checkpoint(node_state)
-
-    for checkpoint in get_finalized_checkpoints(node_state):
-        if checkpoint.chkp_slot > highest_finalized_checkpoint.chkp_slot:
-            highest_finalized_checkpoint = checkpoint
-
-    return highest_finalized_checkpoint
+    return pset_max(
+        get_finalized_checkpoints(node_state),
+        lambda c: c.chkp_slot
+    )
 
 
 def filter_out_blocks_non_ancestor_of_block(block: Block, blocks: PSet[Block], node_state: NodeState) -> PSet[Block]:
@@ -431,11 +428,10 @@ def find_head_from(block: Block, votes: PSet[SignedVoteMessage], node_state: Nod
     if len(children) == 0:
         return block
     else:
-        best_child = pset_pick_element(children)
-
-        for child in children:
-            if get_GHOST_weight(child, votes, node_state, validatorBalances) > get_GHOST_weight(best_child, votes, node_state, validatorBalances):
-                best_child = child
+        best_child = pset_max(
+            children,
+            lambda child: get_GHOST_weight(child, votes, node_state, validatorBalances)
+        )
 
         return find_head_from(best_child, votes, node_state, validatorBalances)
 

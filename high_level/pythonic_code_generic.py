@@ -27,6 +27,12 @@ def pset_merge(a: PSet[T1], b: PSet[T1]) -> PSet[T1]:
     return a.union(b)
 
 
+def pset_intersection(s1: PSet[T1], s2: PSet[T1]) -> PSet[T1]:
+    return s1.intersection(s2)
+
+def pset_difference(s1: PSet[T1], s2: PSet[T1]) -> PSet[T1]:
+    return s1.difference(s2)
+
 def pset_get_singleton(e: T1) -> PSet[T1]:
     return pset([e])
 
@@ -49,7 +55,13 @@ def pset_filter(p: Callable[[T1], bool], s: PSet[T1]) -> PSet[T1]:
 
     return r
     # return pset(filter(p, s))
+    
+def pset_max(s: PSet[T1], a: Callable[[T1], int]) -> T1:
+    Requires(len(s) > 0)
+    return max(s, key=a)
 
+def pset_sum(s:PSet[int]) -> int:
+    return sum(s)
 
 def from_pvector_to_pset(v: PVector[T1]) -> PSet[T1]:
     return pset(v)

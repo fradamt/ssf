@@ -85,11 +85,8 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
         ),
         get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state)
     )
-
-    bcand = pset_pick_element(s_cand)
-    for block in s_cand:
-        if block.slot > bcand.slot:
-            bcand = block
+    
+    bcand = pset_max(s_cand, lambda b:b.slot)
 
     k_deep_block = get_block_k_deep(ch, node_state.configuration.k, node_state)
 
@@ -97,15 +94,14 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
         is_ancestor_descendant_relationship(bcand, node_state.chava, node_state) and
         is_ancestor_descendant_relationship(k_deep_block, node_state.chava, node_state)
     ):
-        newChAva: Block
-
-        if bcand.slot >= k_deep_block.slot:
-            newChAva = bcand
-        else:
-            newChAva = k_deep_block
-
         node_state = node_state.set(
-            chAva=newChAva
+            chAva=pset_max(
+                pset_merge(
+                    pset_get_singleton(bcand),
+                    pset_get_singleton(k_deep_block)
+                ),
+                lambda b:b.slot
+            )
         )
 
     signedVoteMessage = sign_vote_message(

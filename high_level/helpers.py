@@ -403,6 +403,10 @@ def get_votes_to_include_in_propose_message_view(node_state: NodeState) -> PVect
 
 
 def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], node_state: NodeState, validatorBalances: ValidatorBalances) -> int:
+    """
+    The GHOST weight of a `block` is determined by the total stake supporting the branch that ends with this `block` as its tip. 
+    Validators vote with associated stakes, and the collective stake behind these votes establishes the block's GHOST weight.
+    """    
     return pset_sum(
         pset_map(
             lambda vote: validatorBalances[vote.sender],
@@ -421,6 +425,9 @@ def get_GHOST_weight(block: Block, votes: PSet[SignedVoteMessage], node_state: N
 
 
 def get_children(block: Block, node_state: NodeState) -> PSet[Block]:
+    """
+    Returns all the children of a given `block`.
+    """ 
     return pset_filter(
         lambda b: b.parent_hash == block_hash(block),
         get_all_blocks(node_state)
@@ -428,6 +435,9 @@ def get_children(block: Block, node_state: NodeState) -> PSet[Block]:
 
 
 def find_head_from(block: Block, votes: PSet[SignedVoteMessage], node_state: NodeState, validatorBalances: ValidatorBalances) -> Block:
+    """
+    For a given `block`, it uses `get_GHOST_weight` to determine the chain's tip with the largest associated total stake.    
+    """ 
     children = get_children(block, node_state)
 
     if len(children) == 0:
@@ -442,6 +452,11 @@ def find_head_from(block: Block, votes: PSet[SignedVoteMessage], node_state: Nod
 
 
 def get_head(node_state: NodeState) -> Block:
+    """
+    It defines the fork-choice function. It starts from the greatest justified checkpoint, it considers 
+    the latest (non equivocating) votes cast by validators that are not older than `node_state.current_slot` - `node_state.configuration.eta` slots,
+    and it outputs the head of the canonical chain with the largest associated total stake among such `relevant_votes`.
+    """
     relevant_votes: PSet[SignedVoteMessage] = filter_out_GHOST_votes_non_descendant_of_block(  # Do we really need this given that we start find_head from GJ?
         get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
         filter_out_non_LMD_GHOST_votes(
@@ -474,6 +489,11 @@ def get_head(node_state: NodeState) -> Block:
 
 
 def execute_view_merge(node_state: NodeState) -> NodeState:
+    """
+    It merges a validator's buffer with its local view, specifically merging the buffer of blocks `node_state.buffer_blocks` 
+    into the local view of blocks `node_state.view_blocks` and the buffer of votes `node_state.buffer_votes` into the 
+    local view of votes `node_state.view_votes`.
+    """ 
     node_state = node_state.set(blocks=pmap_merge(node_state.view_blocks, node_state.buffer_blocks))
     node_state = node_state.set(view_vote=pset_merge(
         pset_merge(
@@ -488,6 +508,9 @@ def execute_view_merge(node_state: NodeState) -> NodeState:
 
 
 def get_block_k_deep(blockHead: Block, k: int, node_state: NodeState) -> Block:
+    """
+    It identifies the block that is `k` blocks back from the tip of the canonical chain, or the genesis block `node_state.configuration.genesis`.
+    """ 
     Requires(is_complete_chain(blockHead, node_state))
     if k <= 0 or blockHead == node_state.configuration.genesis:
         return blockHead

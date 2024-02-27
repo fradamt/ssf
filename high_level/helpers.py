@@ -265,10 +265,16 @@ def filter_out_GHOST_votes_for_blocks_in_blockchain(votes: PSet[SignedVoteMessag
 
 
 def is_GHOST_vote_expired(vote: SignedVoteMessage, node_state: NodeState) -> bool:
+    """
+    A vote is expired if it was cast in a slot older than `node_state.current_slot` - `node_state.configuration.eta`.
+    """
     return vote.message.slot + node_state.configuration.eta < node_state.current_slot
 
 
 def filter_out_expired_GHOST_votes(votes: PSet[SignedVoteMessage], node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """
+    It filters out from `votes` all the expired votes.
+    """
     return pset_filter(
         lambda vote: is_GHOST_vote_expired(vote, node_state),
         votes
@@ -286,6 +292,11 @@ def filter_out_non_LMD_GHOST_votes(votes: PSet[SignedVoteMessage]) -> PSet[Signe
 
 
 def is_equivocating_GHOST_vote(vote: SignedVoteMessage, node_state: NodeState) -> bool:
+    """
+    It checks if the given `vote` is part of an equivocation by comparing it against all other `vote`s from the same sender 
+    for the same slot but with different block hashes. If such a `vote` exists, the validator is considered to have equivocated, 
+    violating the protocol's rules.
+    """
     return not pset_is_empty(
         pset_filter(
             lambda vote_check:
@@ -298,6 +309,9 @@ def is_equivocating_GHOST_vote(vote: SignedVoteMessage, node_state: NodeState) -
 
 
 def filter_out_GHOST_equivocating_votes(votes: PSet[SignedVoteMessage], node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """ 
+    It filters out from `votes` all the equivocating votes. 
+    """
     return pset_filter(
         lambda vote: not is_equivocating_GHOST_vote(vote, node_state),
         votes
@@ -305,6 +319,20 @@ def filter_out_GHOST_equivocating_votes(votes: PSet[SignedVoteMessage], node_sta
 
 
 def valid_vote(vote: SignedVoteMessage, node_state: NodeState) -> bool:
+    """
+    A vote is valid if:
+    - it has a valid signature;
+    - the block hash associated with the voted head block exists within a validator's view of blocks;
+    - the head block associated with the vote is part of a complete chain that leads back to the genesis block within a validator's state;
+    - the sender is a validator;
+    - `vote.message.ffg_source.block_hash` is an ancestor of `vote.message.ffg_target.block_hash`;
+    - `vote.message.ffg_target.block_hash` is an ancestor of `vote.message.head_hash`;
+    - the checkpoint slot of `vote.message.ffg_source` is strictly less than checkpoint slot of `vote.message.ffg_target`;   
+    - the block associated with `vote.message.ffg_source.block_hash` has a slot number that matches the slot number specified in the same vote message;
+    - the block associated with `vote.message.ffg_target.block_hash` has a slot number that matches the slot number specified in the same vote message;
+    - the block hash associated the source exists within a validator's view of blocks; and
+    - the block hash associated the target exists within a validator's view of blocks.
+    """
     return (
         verify_vote_signature(vote) and
         has_block_hash(vote.message.head_hash, node_state) and

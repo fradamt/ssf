@@ -7,10 +7,16 @@ from stubs import *
 
 
 def get_slot_from_time(time: int, node_state: NodeState) -> int:
+    """
+    It calculates the slot number based on a given `time` and the node's configuration settings. 
+    """
     return time // (4 * node_state.configuration.delta)
 
 
 def get_phase_from_time(time: int, node_state: NodeState) -> NodePhase:
+    """
+    It calculates the phase within a slot based on a given `time` and the node's configuration settings. 
+    """
     time_in_slot = time % (4 * node_state.configuration.delta)
 
     if time_in_slot >= 3 * node_state.configuration.delta:
@@ -24,6 +30,9 @@ def get_phase_from_time(time: int, node_state: NodeState) -> NodePhase:
 
 
 def genesis_checkpoint(node_state: NodeState) -> Checkpoint:
+    """
+    It defines the genesis block.
+    """
     return Checkpoint(
         block_hash=block_hash(node_state.configuration.genesis),
         chkp_slot=0,
@@ -32,32 +41,54 @@ def genesis_checkpoint(node_state: NodeState) -> Checkpoint:
 
 
 def has_block_hash(block_hash: Hash, node_state: NodeState) -> bool:
+    """
+    It checks if a given `block_hash` is present within a `node_state`.
+    """
     return pmap_has(node_state.view_blocks, block_hash)
 
 
 def get_block_from_hash(block_hash: Hash, node_state: NodeState) -> Block:
+    """
+    It retrieves the block associated to a `block_hash`.
+    """
     Requires(has_block_hash(block_hash, node_state))
     return pmap_get(node_state.view_blocks, block_hash)
 
 
 def has_parent(block: Block, node_state: NodeState) -> bool:
+    """
+    It checks whether a `block` has a parent.
+    """
     return has_block_hash(block.parent_hash, node_state)
 
 
 def get_parent(block: Block, node_state: NodeState) -> Block:
+    """
+    It retrieves the parent of a given `block`.
+    """
     Requires(has_parent(block, node_state))
     return get_block_from_hash(block.parent_hash, node_state)
 
 
 def get_all_blocks(node_state: NodeState) -> PSet[Block]:
+    """
+    It retrieves all the blocks in a `node_state`.
+    """
     return pmap_values(node_state.view_blocks)
 
 
 def is_validator(node: NodeIdentity, validatorBalances: ValidatorBalances) -> bool:
+    """
+    It checks whether a `node` is a validator.
+    """
     return pmap_has(validatorBalances, node)
 
 
 def is_complete_chain(block: Block, node_state: NodeState) -> bool:
+    """
+    It checks if a given `block` is part of a complete chain of blocks that reaches back to the genesis block `node_state.configuration.genesis`
+    within a `node_state`.
+    """
     if block == node_state.configuration.genesis:
         return True
     elif not has_parent(block, node_state):
@@ -67,6 +98,10 @@ def is_complete_chain(block: Block, node_state: NodeState) -> bool:
 
 
 def get_blockchain(block: Block, node_state: NodeState) -> PVector[Block]:
+    """
+    It constructs a blockchain from a given `block` back to the genesis block, 
+    assuming the given `block` is part of a complete chain.
+    """
     Requires(is_complete_chain(block, node_state))
     if block == node_state.configuration.genesis:
         return pvector_of_one_element(block)
@@ -78,6 +113,9 @@ def get_blockchain(block: Block, node_state: NodeState) -> PVector[Block]:
 
 
 def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, node_state: NodeState) -> bool:
+    """
+    It determines whether there is an ancestor-descendant relationship between two blocks.
+    """
     if ancestor == descendant:
         return True
     elif descendant == node_state.configuration.genesis:
@@ -94,6 +132,9 @@ def is_ancestor_descendant_relationship(ancestor: Block, descendant: Block, node
 
 
 def validator_set_weight(validators: PSet[NodeIdentity], validatorBalances: ValidatorBalances) -> int:
+    """
+    It calculates the total weight (or sum of `validatorBalances`) of a specified set of `validators` within a blockchain.
+    """
     return pset_sum(
         pset_map(
             lambda v: pmap_get(validatorBalances, v),
@@ -106,6 +147,9 @@ def validator_set_weight(validators: PSet[NodeIdentity], validatorBalances: Vali
 
 
 def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
+    """
+    It extracts a set of ffg targets from a set of `votes`.
+    """
     return pset_map(
         lambda vote: vote.message.ffg_target,
         votes
@@ -113,6 +157,9 @@ def get_set_FFG_targets(votes: PSet[SignedVoteMessage]) -> PSet[Checkpoint]:
 
 
 def is_FFG_vote_in_support_of_checkpoint_justification(vote: SignedVoteMessage, checkpoint: Checkpoint, node_state: NodeState) -> bool:
+    """
+    It determines whether a given `vote` supports the justification of a specified `checkpoint`.
+    """
     return (
         valid_vote(vote, node_state) and
         vote.message.ffg_target.chkp_slot == checkpoint.chkp_slot and
@@ -129,10 +176,16 @@ def is_FFG_vote_in_support_of_checkpoint_justification(vote: SignedVoteMessage, 
 
 
 def filter_out_FFG_votes_not_in_FFG_support_of_checkpoint_justification(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """
+    It filters out ffg votes that do not support the justification of a specified `checkpoint`.
+    """
     return pset_filter(lambda vote: is_FFG_vote_in_support_of_checkpoint_justification(vote, checkpoint, node_state), votes)
 
 
 def get_validators_in_FFG_support_of_checkpoint_justification(votes: PSet[SignedVoteMessage], checkpoint: Checkpoint, node_state: NodeState) -> PSet[NodeIdentity]:
+    """
+    It identifies and returns the set of validators that have cast `votes` in support of the justification of a specified `checkpoint`.
+    """
     return pset_map(
         lambda vote: vote.sender,
         filter_out_FFG_votes_not_in_FFG_support_of_checkpoint_justification(votes, checkpoint, node_state)
@@ -140,6 +193,12 @@ def get_validators_in_FFG_support_of_checkpoint_justification(votes: PSet[Signed
 
 
 def is_justified_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bool:
+    """
+    It checks whether a `checkpoint` if justified, specifically a `checkpoint` is justified if at least 
+    two-thirds of the total validator set weight is in support. This is evaluated by checking if 
+    `FFG_support_weight * 3 >= tot_validator_set_weight * 2`.
+    """
+
     if checkpoint == genesis_checkpoint(node_state):
         return True
     else:
@@ -155,10 +214,18 @@ def is_justified_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bo
 
 
 def filter_out_non_justified_checkpoint(checkpoints: PSet[Checkpoint], node_state: NodeState) -> PSet[Checkpoint]:
+    """
+    It filters out `checkpoints` that are not justified.
+    """
     return pset_filter(lambda checkpoint: is_justified_checkpoint(checkpoint, node_state), checkpoints)
 
 
 def get_justified_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
+    """
+    It retrieves all the justified checkpoints from a `note_state`. First it extracts all ffg target checkpoints from 
+    the set of votes in the `node_state`. Then it filter out these checkpoints to keep only those that are justified.
+    The `genesis_checkpoint` is automatically considered justified.
+    """
     return pset_add(
         filter_out_non_justified_checkpoint(get_set_FFG_targets(node_state.view_votes), node_state),
         genesis_checkpoint(node_state)
@@ -166,6 +233,9 @@ def get_justified_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
 
 
 def get_highest_justified_checkpoint(node_state: NodeState) -> Checkpoint:
+    """
+    It retrieves the highest justified checkpoint from a `node_state`.
+    """
     return pset_max(
         get_justified_checkpoints(node_state),
         lambda c: c.chkp_slot
@@ -173,6 +243,9 @@ def get_highest_justified_checkpoint(node_state: NodeState) -> Checkpoint:
 
 
 def is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote: SignedVoteMessage, checkpoint: Checkpoint, node_state: NodeState) -> bool:
+    """
+    It evaluates whether a given `vote` represents a link from a specified `checkpoint` to a checkpoint in the immediately following slot.
+    """
     return (
         valid_vote(vote, node_state) and
         vote.message.ffg_source == checkpoint and
@@ -180,11 +253,17 @@ def is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote: SignedVoteMessage, ch
     )
 
 
-def filter_out_FFG_vote_not_linking_to_a_checkpoint_in_next_slot(checkpoint: Checkpoint, node_state: NodeState) -> PSet[SignedVoteMessage]:
+def filter_out_FFG_vote_not_linking_to_a_checkpoint_in_next_slot(checkpoint: Checkpoint, node_state: NodeState) -> PSet[SignedVoteMessage]:  
+    """
+    It filters and retains only those votes from a `node_state` that are linking to a `checkpoint` in the next slot.
+    """
     return pset_filter(lambda vote: is_FFG_vote_linking_to_a_checkpoint_in_next_slot(vote, checkpoint, node_state), node_state.view_votes)
 
 
 def get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot(checkpoint: Checkpoint, node_state) -> PSet[NodeIdentity]:
+    """
+    It retrieves the identities of validators who have cast ffg votes that support linking a specified `checkpoint` to its immediate successor.
+    """
     return pset_map(
         lambda vote: vote.sender,
         filter_out_FFG_vote_not_linking_to_a_checkpoint_in_next_slot(checkpoint, node_state)
@@ -192,6 +271,14 @@ def get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot(checkpoint:
 
 
 def is_finalized_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bool:
+    """
+    It evaluates whether a given `checkpoint` has been finalized. A `checkpoint` is considered finalized if it is justified and 
+    if at least two-thirds of the total validator set's weight supports the transition from this `checkpoint` to the next. Specifically, it first checks if the `checkpoint` is justified using 
+    `is_justified_checkpoint(checkpoint, node_state)`. Then it retrieves the set of validators and their balances for the slot associated with the `checkpoint`. 
+    This is done through `get_validator_set_for_slot`. Then it calculates the total weight (stake) of validators who have cast votes 
+    linking the `checkpoint` to the next slot, using `get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot` to identify these validators
+    and `validator_set_weight` to sum their stakes. Finally it checks if `FFG_support_weight * 3 >= tot_validator_set_weight * 2` to finalize `checkpoint`.
+    """
     if not is_justified_checkpoint(checkpoint, node_state):
         return False
 
@@ -203,10 +290,16 @@ def is_finalized_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bo
 
 
 def filter_out_non_finalized_checkpoint(checkpoints: PSet[Checkpoint], node_state: NodeState) -> PSet[Checkpoint]:
+    """
+    It filters out non finalized `checkpoints` from a `node_state`.
+    """
     return pset_filter(lambda checkpoint: is_finalized_checkpoint(checkpoint, node_state), checkpoints)
 
 
 def get_finalized_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
+    """
+    It retrieves from `node_state` all the checkpoints that have been finalized.
+    """
     return pset_add(
         filter_out_non_finalized_checkpoint(get_set_FFG_targets(node_state.view_votes), node_state),
         genesis_checkpoint(node_state)
@@ -214,6 +307,9 @@ def get_finalized_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
 
 
 def get_highest_finalized_checkpoint(node_state: NodeState) -> Checkpoint:
+    """
+    It returns the highest finalized checkpoint from a `node_state`.
+    """
     return pset_max(
         get_finalized_checkpoints(node_state),
         lambda c: c.chkp_slot
@@ -221,6 +317,9 @@ def get_highest_finalized_checkpoint(node_state: NodeState) -> Checkpoint:
 
 
 def filter_out_blocks_non_ancestor_of_block(block: Block, blocks: PSet[Block], node_state: NodeState) -> PSet[Block]:
+    """
+    It filters a set of `blocks`, retaining only those that are ancestors of a specified `block`.
+    """
     return pset_filter(
         lambda b: is_ancestor_descendant_relationship(b, block, node_state),
         blocks
@@ -228,6 +327,9 @@ def filter_out_blocks_non_ancestor_of_block(block: Block, blocks: PSet[Block], n
 
 
 def filter_out_GHOST_votes_non_descendant_of_block(block: Block, votes: PSet[SignedVoteMessage], node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """
+    It filters a set of `votes`, retaining only those that are for blocks which are descendants of a specified `block`.
+    """
     return pset_filter(
         lambda vote:
             has_block_hash(vote.message.head_hash, node_state) and
@@ -241,6 +343,9 @@ def filter_out_GHOST_votes_non_descendant_of_block(block: Block, votes: PSet[Sig
 
 
 def is_GHOST_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHead: Block, node_state: NodeState) -> bool:
+    """
+    It evaluates whether a given `vote` is for a block that is part of the blockchain ending at a specified "head" block (`blockchainHead`).
+    """
     return (
         has_block_hash(vote.message.head_hash, node_state) and
         is_ancestor_descendant_relationship(
@@ -251,6 +356,9 @@ def is_GHOST_vote_for_block_in_blockchain(vote: SignedVoteMessage, blockchainHea
 
 
 def filter_out_GHOST_votes_not_for_blocks_in_blockchain(votes: PSet[SignedVoteMessage], blockchainHead: Block, node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """
+    It filter through a set of `votes`, retaining only those that are for blocks within the blockchain leading up to a specified `blockchainHead`.
+    """
     return pset_filter(
         lambda vote: is_GHOST_vote_for_block_in_blockchain(vote, blockchainHead, node_state),
         votes
@@ -258,6 +366,9 @@ def filter_out_GHOST_votes_not_for_blocks_in_blockchain(votes: PSet[SignedVoteMe
 
 
 def filter_out_GHOST_votes_for_blocks_in_blockchain(votes: PSet[SignedVoteMessage], blockchainHead: Block, node_state: NodeState) -> PSet[SignedVoteMessage]:
+    """
+    It filter through a set of `votes`, excluding those that are for blocks within the blockchain leading up to and including a specified `blockchainHead`. 
+    """
     return pset_filter(
         lambda vote: not is_GHOST_vote_for_block_in_blockchain(vote, blockchainHead, node_state),
         votes

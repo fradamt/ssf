@@ -92,11 +92,11 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     """
     A validator in the role of a voter begins by identifying the current tip of the canonical blockchain using the `get_head` function. 
     The validator then filters through its confirmation candidates, removing any that conflict with the `get_head` output, while also 
-    including the highest justified checkpoint.
-    The candidate block, `bcand`, is determined as the max among the confirmation candidates and the highest justified checkpoint. 
+    including the greatest justified checkpoint.
+    The candidate block, `bcand`, is determined as the max among the confirmation candidates and the greatest justified checkpoint. 
     The validator then considers the k deep prefix from the canonical chain's tip, referred to as `k_deep_block`, and compares it with `bcand`.
     The next step involves updating the validator's available chain, `node_state.chava`, to reflect the max between `bcand` and `k_deep_block`, provided neither are ancestors of `node_state.chava`. 
-    Finally, the validator casts a vote, specifying the `get_highest_justified_checkpoint` as the source checkpoint and defining the target checkpoint based on `node_state.chava`, the current slot, and the slot of `chAva`.
+    Finally, the validator casts a vote, specifying the `get_greatest_justified_checkpoint` as the source checkpoint and defining the target checkpoint based on `node_state.chava`, the current slot, and the slot of `chAva`.
     """
     ch = get_head(node_state)
     s_cand = pset_add(
@@ -105,7 +105,7 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
             node_state.s_cand,
             node_state
         ),
-        get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state)
+        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state)
     )
 
     bcand = pset_max(s_cand, lambda b: b.slot)
@@ -130,7 +130,7 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
         VoteMessage(
             slot=node_state.current_slot,
             head_hash=block_hash(get_head(node_state)),
-            ffg_source=get_highest_justified_checkpoint(node_state),
+            ffg_source=get_greatest_justified_checkpoint(node_state),
             ffg_target=Checkpoint(
                 block_hash=block_hash(node_state.chava),
                 chkp_slot=node_state.current_slot,
@@ -246,7 +246,7 @@ def finalized_chain(node_state: NodeState) -> PVector[Block]:
     """
     return get_blockchain(
         get_block_from_hash(
-            get_highest_finalized_checkpoint(node_state).block_hash,
+            get_greatest_finalized_checkpoint(node_state).block_hash,
             node_state
         ),
         node_state

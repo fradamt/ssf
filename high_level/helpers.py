@@ -232,13 +232,13 @@ def get_justified_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
     )
 
 
-def get_highest_justified_checkpoint(node_state: NodeState) -> Checkpoint:
+def get_greatest_justified_checkpoint(node_state: NodeState) -> Checkpoint:
     """
-    It retrieves the highest justified checkpoint from a `node_state`.
+    It retrieves the greatest justified checkpoint from a `node_state`.
     """
     return pset_max(
         get_justified_checkpoints(node_state),
-        lambda c: c.chkp_slot
+        lambda c: (c.chkp_slot, c.block_slot)
     )
 
 
@@ -306,9 +306,9 @@ def get_finalized_checkpoints(node_state: NodeState) -> PSet[Checkpoint]:
     )
 
 
-def get_highest_finalized_checkpoint(node_state: NodeState) -> Checkpoint:
+def get_greatest_finalized_checkpoint(node_state: NodeState) -> Checkpoint:
     """
-    It returns the highest finalized checkpoint from a `node_state`.
+    It returns the greatest finalized checkpoint from a `node_state`.
     """
     return pset_max(
         get_finalized_checkpoints(node_state),
@@ -528,7 +528,7 @@ def get_votes_to_include_in_propose_message_view(node_state: NodeState) -> PVect
     return from_set_to_pvector(
         filter_out_GHOST_votes_for_blocks_in_blockchain(
             filter_out_GHOST_votes_non_descendant_of_block(
-                get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
+                get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
                 filter_out_expired_GHOST_votes(
                     filter_out_invalid_votes(node_state.view_votes, node_state),
                     node_state
@@ -597,7 +597,7 @@ def get_head(node_state: NodeState) -> Block:
     and it outputs the head of the canonical chain with the largest associated total stake among such `relevant_votes`.
     """
     relevant_votes: PSet[SignedVoteMessage] = filter_out_GHOST_votes_non_descendant_of_block(  # Do we really need this given that we start find_head from GJ?
-        get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
+        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
         filter_out_non_LMD_GHOST_votes(
             filter_out_expired_GHOST_votes(
                 filter_out_GHOST_equivocating_votes(
@@ -614,13 +614,13 @@ def get_head(node_state: NodeState) -> Block:
     )
 
     validatorBalances = get_validator_set_for_slot(
-        get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
+        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
         node_state.current_slot,
         node_state
     )
 
     return find_head_from(
-        get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
+        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
         relevant_votes,
         node_state,
         validatorBalances
@@ -661,7 +661,7 @@ def is_confirmed(block: Block, node_state: NodeState) -> bool:
     head_block = get_head(node_state)
 
     validatorBalances = get_validator_set_for_slot(
-        get_block_from_hash(get_highest_justified_checkpoint(node_state).block_hash, node_state),
+        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
         node_state.current_slot,
         node_state
     )

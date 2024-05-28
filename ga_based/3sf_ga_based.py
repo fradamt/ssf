@@ -132,7 +132,7 @@ def on_vote(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
         VoteMessage(
             slot=node_state.current_slot,
             head_hash=block_hash(get_head(node_state)),
-            ffg_source=get_greatest_justified_checkpoint(node_state),
+            ffg_source=node_state.greatest_justified_checkpoint,
             ffg_target=Checkpoint(
                 block_hash=block_hash(node_state.chava),
                 chkp_slot=node_state.current_slot,
@@ -154,6 +154,7 @@ def on_confirm(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     A validator refines its set of confirmation candidates, specifically, the set `s_cand` of blocks that garnered over two-thirds 
     of the votes during the NodePhase.VOTE stage.    
     """
+    node_state = update_justified_and_candidate(node_state)
     return NewNodeStateAndMessagesToTx(
         state=node_state.set(
             s_cand=pset_merge(
@@ -171,6 +172,7 @@ def on_confirm(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
 
 def on_merge(node_state: NodeState) -> NewNodeStateAndMessagesToTx:
     """
+    A validator updates its view of the greatest jusitfied checkpoint and of the highest candidate block
     """
     return NewNodeStateAndMessagesToTx(
         state=update_justified_and_candidate(node_state),
@@ -214,7 +216,7 @@ def on_propose_received(propose: SignedProposeMessage, node_state: NodeState) ->
                                                 proposed_candidate, 
                                                 node_state):
                 node_state = node_state.set(
-                    highest_candidate_block=block_hash(propose.message.highest_candidate_block_hash)
+                    highest_candidate_block=proposed_candidate
                 )
 
     return NewNodeStateAndMessagesToTx(

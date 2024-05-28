@@ -210,7 +210,8 @@ def is_justified_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bo
     """
     It checks whether a `checkpoint` if justified, specifically a `checkpoint` is justified if at least 
     two-thirds of the total validator set weight is in support. This is evaluated by checking if 
-    `FFG_support_weight * 3 >= tot_validator_set_weight * 2`.
+    `FFG_support_weight * 3 >= tot_validator_set_weight * 2`, using the balances in the state of
+    `checkpoint`, the justification target.
     """
 
     if checkpoint == genesis_checkpoint(node_state):
@@ -287,8 +288,9 @@ def get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot(checkpoint:
 def is_finalized_checkpoint(checkpoint: Checkpoint, node_state: NodeState) -> bool:
     """
     It evaluates whether a given `checkpoint` has been finalized. A `checkpoint` is considered finalized if it is justified and 
-    if at least two-thirds of the total validator set's weight supports the transition from this `checkpoint` to the next. Specifically, it first checks if the `checkpoint` is justified using 
-    `is_justified_checkpoint(checkpoint, node_state)`. Then it retrieves the set of validators and their balances for the slot associated with the `checkpoint`. 
+    if at least two-thirds of the total validator set's weight supports the transition from this `checkpoint` to the next. 
+    Specifically, it first checks if the `checkpoint` is justified using `is_justified_checkpoint(checkpoint, node_state)`. 
+    Then it retrieves the set of validators and their balances for the slot associated with the `checkpoint`. 
     This is done through `get_validator_set_for_slot`. Then it calculates the total weight (stake) of validators who have cast votes 
     linking the `checkpoint` to the next slot, using `get_validators_in_FFG_votes_linking_to_a_checkpoint_in_next_slot` to identify these validators
     and `validator_set_weight` to sum their stakes. Finally it checks if `FFG_support_weight * 3 >= tot_validator_set_weight * 2` to finalize `checkpoint`.
@@ -649,7 +651,7 @@ def get_head(node_state: NodeState, is_proposal: bool=False) -> Block:
         relevant_votes = filter_out_late_received_head_votes(relevant_votes, node_state)
 
     validatorBalances = get_validator_set_for_slot(
-        node_state.highest_candidate_block,
+        get_greatest_justified_block(node_state),
         get_slot(node_state),
         node_state
     )
@@ -707,7 +709,7 @@ def is_confirmed(block: Block, node_state: NodeState) -> bool:
     head_block = get_head(node_state)
 
     validatorBalances = get_validator_set_for_slot(
-        get_block_from_hash(get_greatest_justified_checkpoint(node_state).block_hash, node_state),
+        get_greatest_justified_block(node_state),
         get_slot(node_state),
         node_state
     )
@@ -736,21 +738,19 @@ def is_recent_quorum_for_block(votes: PSet[SignedVoteMessage], block: Block, nod
         node_state
     )
     tot_validator_set_weight = validator_set_weight(pmap_keys(validatorBalances), validatorBalances)
-    get_GHOST_weight(block, votes_from_previous_slot, node_state, validatorBalances) * 3 >= tot_validator_set_weight * 2
-
+    return get_GHOST_weight(block, votes_from_previous_slot, node_state, validatorBalances) * 3 >= tot_validator_set_weight * 2
 
 
 def get_greatest_justified_block(node_state: NodeState) -> Block:
     return get_block_from_hash(node_state.greatest_justified_checkpoint.block_hash, node_state)
 
+
 def get_highest_candidate_block(node_state: NodeState) -> Block:
     greatest_justified_block = get_greatest_justified_block(node_state)
     descendants_of_greatest_justified = filter_out_blocks_non_ancestor_of_block(greatest_justified_block, get_all_blocks(node_state), node_state)
     candidate_blocks = pset_filter(lambda block: is_recent_quorum_for_block(node_state.votes, block, node_state), descendants_of_greatest_justified)
-    if len(candidate_blocks) > 0:
-        return pset_max(candidate_blocks, lambda b: b.slot)
-    else:
-        return greatest_justified_block
+    candidate_blocks = pset_add(candidate_blocks, greatest_justified_block)
+    return pset_max(candidate_blocks, lambda b: b.slot)
 
 
 def update_justified_and_candidate(node_state: NodeState) -> NodeState:
@@ -763,6 +763,7 @@ def update_justified_and_candidate(node_state: NodeState) -> NodeState:
     )
 
     return node_state
+
 
 def is_greater_checkpoint(checkpoint1: Checkpoint, checkpoint2: Checkpoint):
     checkpoint_order_function = lambda c: (c.chkp_slot, c.block_slot)
